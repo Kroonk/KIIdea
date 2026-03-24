@@ -47,6 +47,15 @@ export async function addToInventory(itemId: string, quantity: number) {
   revalidatePath('/inventory')
 }
 
+export async function updateInventory(id: string, quantity: number) {
+  await prisma.inventory.update({
+    where: { id },
+    data: { quantity }
+  })
+  revalidatePath('/inventory')
+  revalidatePath('/')
+}
+
 export async function removeFromInventory(id: string, quantityToRemove?: number) {
   if (quantityToRemove) {
     const inv = await prisma.inventory.findUnique({ where: { id } })
@@ -59,9 +68,10 @@ export async function removeFromInventory(id: string, quantityToRemove?: number)
       return;
     }
   }
-  
+
   await prisma.inventory.delete({ where: { id } })
   revalidatePath('/inventory')
+  revalidatePath('/')
 }
 
 export async function handleBarcodeScan(barcode: string) {

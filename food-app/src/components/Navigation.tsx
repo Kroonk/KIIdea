@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Refrigerator, BookOpen, PlusCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "./ThemeToggle"
 
 const navItems = [
   { href: "/", label: "Start", icon: Home },
@@ -20,27 +21,30 @@ export default function Navigation() {
       {/* Desktop Top Nav */}
       <header className="hidden md:flex items-center justify-between px-6 py-4 bg-background border-b shadow-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-primary tracking-tight">KIIdea Food</span>
+          <span className="text-2xl font-bold text-primary tracking-tight">Foodlabs</span>
         </div>
-        <nav className="flex items-center gap-6">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Link 
-                key={item.href} 
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
+        <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-6">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Mobile Bottom Nav */}

@@ -14,7 +14,7 @@ export default async function Home() {
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto pb-12">
       <div className="text-center md:text-left md:flex justify-between items-end mb-4">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-primary">KIIdea Food</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight text-primary">Foodlabs</h1>
           <p className="text-muted-foreground mt-2 text-lg">Was kochen wir heute?</p>
         </div>
         <Link href="/add" className="hidden md:block">
