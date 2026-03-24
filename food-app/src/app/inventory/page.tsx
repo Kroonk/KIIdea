@@ -20,12 +20,12 @@ export default async function InventoryPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Hier siehst du, was aktuell im Kühlschrank oder der Vorratskammer ist.</p>
         </div>
-        <Button asChild className="shrink-0">
-          <Link href="/add">
+        <Link href="/add">
+          <Button className="shrink-0">
             <Plus className="w-4 h-4 mr-2" />
             Hinzufügen
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
 
       {inventory.length === 0 ? (
