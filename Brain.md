@@ -526,7 +526,8 @@ CMD ["./start.sh"]
 ```yaml
 services:
   food-app:
-    image: kiidea-food-app:latest
+    image: ghcr.io/kroonk/kiidea:latest
+    pull_policy: always
     container_name: kiidea-food-app
     ports:
       - "3000:3000"
@@ -588,23 +589,41 @@ npx prisma db seed      # Seed-Daten
 npm run dev             # Dev-Server: http://localhost:3000
 ```
 
-### Docker Image Build
+### Docker Image Build & Push (GitHub Container Registry)
+
+**Einmalig: Login bei GHCR**
+```bash
+docker login ghcr.io -u Kroonk
+# Password: GitHub Personal Access Token mit write:packages
+```
+
+**Build & Push Workflow:**
 ```bash
 cd food-app
-docker build -t kiidea-food-app:latest .
+docker build -t ghcr.io/kroonk/kiidea:latest .
+docker push ghcr.io/kroonk/kiidea:latest
 ```
 
-### Docker Image Export (.tar)
-```bash
-docker save kiidea-food-app:latest -o food-app-v1.0.tar
-```
+### Deployment auf NAS
 
-### Image auf NAS laden
+**Einmalig: Login auf NAS**
 ```bash
 # Auf NAS:
-docker load -i food-app-v1.0.tar
-docker-compose up -d
+docker login ghcr.io -u Kroonk
 ```
+
+**Image aktualisieren:**
+```bash
+# Auf NAS:
+docker-compose pull     # Zieht neueste Version
+docker-compose up -d    # Startet/Updated Container
+```
+
+**Vorteile:**
+- ✅ Kein TAR-Export mehr nötig
+- ✅ Automatisches Pull mit `pull_policy: always`
+- ✅ Versionierung möglich (Tags)
+- ✅ Schneller Deployment-Workflow
 
 ### Container-Status prüfen
 ```bash

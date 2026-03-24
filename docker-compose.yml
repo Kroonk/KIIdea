@@ -1,6 +1,7 @@
 services:
   food-app:
-    image: kiidea-food-app:latest
+    image: ghcr.io/kroonk/kiidea:latest
+    pull_policy: always
     container_name: kiidea-food-app
     ports:
       - "3000:3000"
