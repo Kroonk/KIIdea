@@ -24,8 +24,8 @@ export default function InventoryCard({
 }: InventoryCardProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
-  const handleEdit = async (newQuantity: number) => {
-    await updateInventory(id, newQuantity)
+  const handleEdit = async (newQuantity: number, newUnit?: string) => {
+    await updateInventory(id, newQuantity, newUnit)
   }
 
   const handleDelete = async () => {

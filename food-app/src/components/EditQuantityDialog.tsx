@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Edit3 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface EditQuantityDialogProps {
   open: boolean
@@ -13,8 +14,21 @@ interface EditQuantityDialogProps {
   itemName: string
   itemUnit?: string
   currentQuantity: number
-  onConfirm: (quantity: number) => Promise<void>
+  onConfirm: (quantity: number, unit?: string) => Promise<void>
 }
+
+const UNITS = [
+  "Stück",
+  "Gramm",
+  "Kilogramm",
+  "ml",
+  "Liter",
+  "Teelöffel",
+  "Esslöffel",
+  "Packung",
+  "Dose",
+  "Bund"
+]
 
 export default function EditQuantityDialog({
   open,
@@ -25,11 +39,13 @@ export default function EditQuantityDialog({
   onConfirm
 }: EditQuantityDialogProps) {
   const [quantity, setQuantity] = useState(currentQuantity.toString())
+  const [unit, setUnit] = useState(itemUnit)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     setQuantity(currentQuantity.toString())
-  }, [currentQuantity, open])
+    setUnit(itemUnit)
+  }, [currentQuantity, itemUnit, open])
 
   const handleConfirm = async () => {
     const qty = parseFloat(quantity)
@@ -40,7 +56,9 @@ export default function EditQuantityDialog({
 
     setLoading(true)
     try {
-      await onConfirm(qty)
+      // Nur Einheit übergeben wenn sie sich geändert hat
+      const unitChanged = unit !== itemUnit
+      await onConfirm(qty, unitChanged ? unit : undefined)
       onOpenChange(false)
     } catch (e) {
       console.error("Fehler beim Aktualisieren:", e)
@@ -82,27 +100,51 @@ export default function EditQuantityDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="quantity" className="text-sm font-medium">
-              Neue Menge ({itemUnit})
-            </Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="z.B. 500"
-              autoFocus
-              disabled={loading}
-              className="text-lg"
-            />
-            <p className="text-xs text-muted-foreground">
-              Aktuell: {currentQuantity} {itemUnit}
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="quantity" className="text-sm font-medium">
+                Neue Menge
+              </Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="z.B. 500"
+                autoFocus
+                disabled={loading}
+                className="text-lg"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="unit" className="text-sm font-medium">
+                Einheit
+              </Label>
+              <select
+                id="unit"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                disabled={loading}
+                className={cn(
+                  "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                )}
+              >
+                {UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            Aktuell: {currentQuantity} {itemUnit}
+          </p>
 
           {/* Schnellauswahl-Buttons */}
           <div className="flex gap-2 flex-wrap">
@@ -142,7 +184,7 @@ export default function EditQuantityDialog({
             >
               10
             </Button>
-            {itemUnit.toLowerCase().includes("gramm") && (
+            {unit.toLowerCase().includes("gramm") && (
               <>
                 <Button
                   type="button"

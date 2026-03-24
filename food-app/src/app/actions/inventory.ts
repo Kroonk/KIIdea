@@ -47,7 +47,22 @@ export async function addToInventory(itemId: string, quantity: number) {
   revalidatePath('/inventory')
 }
 
-export async function updateInventory(id: string, quantity: number) {
+export async function updateInventory(id: string, quantity: number, unit?: string) {
+  // Wenn eine Einheit übergeben wird, aktualisiere auch das Item
+  if (unit) {
+    const inv = await prisma.inventory.findUnique({
+      where: { id },
+      select: { itemId: true }
+    })
+
+    if (inv) {
+      await prisma.item.update({
+        where: { id: inv.itemId },
+        data: { unit }
+      })
+    }
+  }
+
   await prisma.inventory.update({
     where: { id },
     data: { quantity }

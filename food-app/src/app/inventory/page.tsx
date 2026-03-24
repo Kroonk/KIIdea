@@ -1,7 +1,7 @@
 import { getInventory } from "@/app/actions/inventory"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Refrigerator, Plus } from "lucide-react"
+import { Refrigerator, Plus, Database } from "lucide-react"
 import Link from "next/link"
 import InventoryCard from "@/components/InventoryCard"
 
@@ -20,12 +20,19 @@ export default async function InventoryPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Hier siehst du, was aktuell im Kühlschrank oder der Vorratskammer ist.</p>
         </div>
-        <Link href="/add">
-          <Button className="shrink-0">
-            <Plus className="w-4 h-4 mr-2" />
-            Hinzufügen
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/backup">
+            <Button variant="outline" size="icon" className="shrink-0" title="Backup & Restore">
+              <Database className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Link href="/add">
+            <Button className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" />
+              Hinzufügen
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {inventory.length === 0 ? (
