@@ -1,0 +1,20 @@
+services:
+  food-app:
+    image: kiidea-food-app:latest
+    container_name: kiidea-food-app
+    ports:
+      - "3000:3000"
+    volumes:
+      # Wir mappen den prisma-Ordner nach außen, damit die SQLite "dev.db" 
+      # beim Neustart des Containers nicht verloren geht.
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL="file:/app/data/dev.db" # Verweist auf /app/prisma/dev.db
+    restart: unless-stopped
+    networks:
+      - npm-net
+
+networks:
+  npm-net:
+    external: true

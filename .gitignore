@@ -1,0 +1,30 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker Exports (Critical to keep out of Git)
+*.tar
+food-app.tar
+
+# Dependency directories
+node_modules/
+
+# Next.js
+.next
+out
+build
+
+# Prisma
+# We want to ACTUALLY SAVE our master dev.db in Git 
+# so that building the standalone image works! But we ignore local backups
+*.db-journal
+
+# Environment variables
+.env*.local
+
+# OS files
+.DS_Store
+Thumbs.db
