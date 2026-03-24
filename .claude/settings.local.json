@@ -9,7 +9,8 @@
       "Bash(docker save:*)",
       "Bash(docker-compose down:*)",
       "Bash(docker-compose up:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(docker login:*)"
     ]
   }
 }

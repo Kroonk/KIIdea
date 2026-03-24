@@ -591,10 +591,24 @@ npm run dev             # Dev-Server: http://localhost:3000
 
 ### Docker Image Build & Push (GitHub Container Registry)
 
-**Einmalig: Login bei GHCR**
+**Einmaliges Setup (GitHub):**
+
+1. **Personal Access Token erstellen:**
+   - https://github.com/settings/tokens/new
+   - Scopes: ✅ `write:packages`, `read:packages`, `delete:packages`
+   - Expiration: Nach Wunsch (oder "No expiration")
+   - Token kopieren und sicher speichern!
+
+2. **Package auf Public stellen:**
+   - Nach erstem Push: https://github.com/users/Kroonk/packages
+   - Package "kiidea" → Settings
+   - "Change visibility" → "Public"
+   - "Connect repository" → "KIIdea" auswählen
+
+**Einmalig: Login bei GHCR (Lokal)**
 ```bash
 docker login ghcr.io -u Kroonk
-# Password: GitHub Personal Access Token mit write:packages
+# Password: GitHub Personal Access Token (NICHT dein GitHub Passwort!)
 ```
 
 **Build & Push Workflow:**
@@ -606,17 +620,26 @@ docker push ghcr.io/kroonk/kiidea:latest
 
 ### Deployment auf NAS
 
-**Einmalig: Login auf NAS**
+**Wichtig: NAS nutzt Docker Compose V2**
+- Befehl ist `docker compose` (mit Leerzeichen)
+- NICHT `docker-compose` (mit Bindestrich)
+
+**Einmalig: Setup auf NAS**
 ```bash
-# Auf NAS:
-docker login ghcr.io -u Kroonk
+# 1. Git Repository auf NAS clonen/pullen
+cd /volume2/docker/Vibecoding/Website/KIIdea
+git pull
+
+# 2. Optional: Login (nur nötig wenn Package private ist)
+# Da Package public ist, kein Login erforderlich!
 ```
 
 **Image aktualisieren:**
 ```bash
 # Auf NAS:
-docker-compose pull     # Zieht neueste Version
-docker-compose up -d    # Startet/Updated Container
+cd /volume2/docker/Vibecoding/Website/KIIdea
+docker compose pull     # Zieht neueste Version
+docker compose up -d    # Startet/Updated Container
 ```
 
 **Vorteile:**
@@ -624,6 +647,7 @@ docker-compose up -d    # Startet/Updated Container
 - ✅ Automatisches Pull mit `pull_policy: always`
 - ✅ Versionierung möglich (Tags)
 - ✅ Schneller Deployment-Workflow
+- ✅ Kein Login auf NAS nötig (bei public Package)
 
 ### Container-Status prüfen
 ```bash
@@ -700,6 +724,53 @@ docker network create npm-net
 
 # Option 2: docker-compose.yml anpassen (ohne NPM)
 # Kommentiere networks-Sektion aus
+```
+
+### Problem: GitHub Container Registry "unauthorized"
+
+**Symptom:**
+```
+Error response from daemon: Head "https://ghcr.io/v2/kroonk/kiidea/manifests/latest": unauthorized
+```
+
+**Ursachen & Lösungen:**
+
+1. **Package ist auf "Private" gestellt:**
+   - Gehe zu: https://github.com/users/Kroonk/packages
+   - Package "kiidea" → Settings → "Change visibility" → "Public"
+
+2. **Docker cached alte Auth-Antwort:**
+   ```bash
+   docker logout ghcr.io
+   docker pull ghcr.io/kroonk/kiidea:latest
+   ```
+
+3. **Token-Probleme beim Push:**
+   ```bash
+   # Neues Login mit frischem Token
+   docker login ghcr.io -u Kroonk
+   # Token mit write:packages Berechtigung verwenden
+   ```
+
+### Problem: docker-compose vs docker compose
+
+**Symptom:**
+```
+bash: docker-compose: command not found
+```
+
+**Ursache:** Docker Compose V2 nutzt Plugin-Syntax
+
+**Lösung:**
+```bash
+# ❌ Alt (V1): docker-compose
+# ✅ Neu (V2): docker compose
+
+# Alle Befehle mit Leerzeichen:
+docker compose pull
+docker compose up -d
+docker compose down
+docker compose logs
 ```
 
 ### Problem: Port 3000 bereits belegt
@@ -883,6 +954,25 @@ data/dev.db   # Runtime-DB nicht committen
 
 ## Changelog & Version History
 
+### v1.1 (März 2026) - GitHub Container Registry Migration
+**Deployment Improvements:**
+- ✅ Migriert zu GitHub Container Registry (ghcr.io)
+- ✅ Eliminiert TAR-Export/Import Workflow
+- ✅ `pull_policy: always` für automatische Updates
+- ✅ Public Package für Login-freies Pulling
+- ✅ Docker Compose V2 Kompatibilität dokumentiert
+
+**Dokumentation:**
+- ✅ Vollständige GHCR Setup-Anleitung
+- ✅ Troubleshooting für GHCR und Docker Compose V2
+- ✅ Vereinfachter Deployment-Workflow
+
+**Workflow-Verbesserung:**
+```bash
+# Alt:  Build → Export TAR → Upload → Load → Recreate
+# Neu:  Build → Push → Pull → Up (in Sekunden!)
+```
+
 ### v1.0 (März 2026) - Production Release
 **Fixes:**
 - ✅ Prisma Singleton Pattern implementiert (`lib/prisma.ts`)
@@ -955,5 +1045,5 @@ data/dev.db   # Runtime-DB nicht committen
 ---
 
 **Letzte Aktualisierung:** März 2026
-**Version:** 1.0 (Produktiv)
+**Version:** 1.1 (GitHub Container Registry)
 **Maintainer:** Kroonk
