@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, ChefHat, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 
-export default async function RecipeDetailPage({ params }: { params: { id: string } }) {
-  const recipe = await getRecipeById(params.id)
+export default async function RecipeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const recipe = await getRecipeById(id)
 
   if (!recipe) {
     notFound()
