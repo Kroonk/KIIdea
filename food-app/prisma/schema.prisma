@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Item {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  barcode   String?  @unique
+  unit      String   @default("Stück") // z.B. Stück, Gramm, ml
+  category  String?  // z.B. Gemüse, Milchprodukt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventories       Inventory[]
+  recipeIngredients RecipeIngredient[]
+}
+
+model Inventory {
+  id        String   @id @default(cuid())
+  quantity  Float
+  expiresAt DateTime?
+
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Recipe {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?
+  sourceUrl   String?
+  instructions String? // JSON-String oder Markdown
+
+  ingredients RecipeIngredient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RecipeIngredient {
+  id       String @id @default(cuid())
+  quantity Float
+  unit     String? // Kann abweichen vom Standard, z.B. 1 "Prise"
+
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  itemId String
+
+  @@unique([recipeId, itemId])
+}
