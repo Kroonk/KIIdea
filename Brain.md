@@ -7,6 +7,10 @@
 >    - Arbeite diese Issues nacheinander ab (implementieren, testen, committen)
 >    - Schließe jedes Issue nach Fertigstellung mit: `curl -X PATCH -H "Accept: application/vnd.github+json" https://api.github.com/repos/Kroonk/KIIdea/issues/{issue_number} -d '{"state":"closed"}'`
 >    - Aktualisiere die Brain.md mit den neuen Features
+>    - **DEPLOYMENT:** Nach Abschluss IMMER ausführen:
+>      1. `git push` - Änderungen auf GitHub pushen
+>      2. Docker Build & Push: `cd food-app && docker build -t ghcr.io/kroonk/kiidea:latest . && docker push ghcr.io/kroonk/kiidea:latest`
+>      3. User kann dann direkt auf NAS deployen mit: `docker compose pull && docker compose up -d`
 > 3. Behandle diese Datei wie dein Langzeitgedächtnis. Nutze sie proaktiv!
 
 ---
