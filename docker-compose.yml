@@ -12,11 +12,9 @@ services:
       - NODE_ENV=production
       - DATABASE_URL="file:/app/data/dev.db" # Verweist auf /app/prisma/dev.db
     restart: unless-stopped
-    # Optional: Uncomment for Nginx Proxy Manager integration
-    # networks:
-    #   - npm-net
+    networks:
+      - npm-net
 
-# Optional: Uncomment for Nginx Proxy Manager integration
-# networks:
-#   npm-net:
-#     external: true
+networks:
+  npm-net:
+    external: true
