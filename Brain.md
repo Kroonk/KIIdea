@@ -1,9 +1,20 @@
 # KIIdea - Food Tracker & Smart Recipes
 
+> **⚠️ META-REGEL FÜR CLAUDE:**
+> Diese Datei ist das **Projekt-Gedächtnis**. Nach **jeder Code-Änderung** MUSS die Brain.md aktualisiert werden:
+> - Neue Features dokumentieren
+> - Architektur-Änderungen festhalten
+> - Bekannte Probleme & Lösungen ergänzen
+> - Changelog aktualisieren
+>
+> **WICHTIG:** Behandle diese Datei wie dein Langzeitgedächtnis. Nutze sie proaktiv, ohne dass der User dich daran erinnern muss!
+
+---
+
 ## Projekt-Übersicht
 KIIdea ist eine selbst gehostete, "Mobile-First" Web-Anwendung (PWA) zur effizienten Verwaltung von Lebensmitteln, mit integrierter Logik für smarte Rezeptvorschläge basierend auf dem aktuellen Kühlschrank-Inhalt.
 
-**Status:** v1.0 Produktiv (März 2026)
+**Status:** v1.2 Produktiv (März 2026)
 **Repository:** https://github.com/Kroonk/KIIdea
 
 ---
@@ -21,6 +32,26 @@ KIIdea ist eine selbst gehostete, "Mobile-First" Web-Anwendung (PWA) zur effizie
   - `html5-qrcode` (Barcode-Scanner)
   - `cheerio` (Web-Scraping)
   - `cmdk` (Command Menu)
+
+### UI-Komponenten Architektur
+**Shadcn UI Components (Custom):**
+- `button.tsx` - Buttons mit Varianten (default, outline, ghost)
+- `card.tsx` - Container mit Header/Content/Footer
+- `checkbox.tsx` - Checkboxen für Zutatenlisten
+- `command.tsx` - Command Palette für Suche
+- `dialog.tsx` - Modale Dialoge (v1.2: AddQuantityDialog)
+- `input.tsx` - Text/Number Inputs
+- `input-group.tsx` - Gruppierte Inputs
+- `label.tsx` - Labels für Forms (v1.2)
+- `popover.tsx` - Popover für Dropdowns
+- `textarea.tsx` - Mehrzeilige Texteingabe
+
+**Custom Components:**
+- `AddQuantityDialog.tsx` (v1.2) - Mengen-Eingabe Dialog
+- `BarcodeScanner.tsx` - Wrapper für html5-qrcode
+- `CookRecipeDialog.tsx` - Zutaten-Auswahl beim Kochen
+- `ItemSearch.tsx` - Lebensmittel-Suche mit Autocomplete
+- `Navigation.tsx` - Bottom Navigation Bar
 
 ### Architektur-Entscheidungen
 
@@ -184,7 +215,54 @@ User scannt Barcode
 
 **Wichtig:** Jedes gescannte Produkt wird **dauerhaft lokal gespeichert**!
 
-#### 1.3 Seed-Daten (Initial-Befüllung)
+#### 1.3 Mengen-Eingabe mit AddQuantityDialog (v1.2)
+**Files:**
+- `src/components/AddQuantityDialog.tsx` (Dialog-Komponente)
+- `src/components/ItemSearch.tsx` (Integration bei manueller Suche)
+- `src/app/add/BarcodeScannerWrapper.tsx` (Integration bei Barcode-Scan)
+
+**Problem (v1.0-1.1):** Bei jedem Hinzufügen wurde hardcoded "1" als Menge verwendet.
+
+**Lösung (v1.2):** Wiederverwendbarer Dialog für Mengeneingabe:
+
+```typescript
+// Nach Item-Auswahl oder Barcode-Scan öffnet sich Dialog
+<AddQuantityDialog
+  open={dialogOpen}
+  onOpenChange={setDialogOpen}
+  itemName="Mehl"
+  itemUnit="Gramm"
+  suggestedQuantity={500}  // Optional: Vorschlag von OpenFoodFacts
+  onConfirm={async (quantity) => {
+    await addToInventory(itemId, quantity)
+  }}
+/>
+```
+
+**Features:**
+- ✅ Number-Input mit Auto-Focus
+- ✅ Enter-Taste zum Bestätigen
+- ✅ Schnellauswahl-Buttons (1, 2, 5, 10)
+- ✅ Kontext-sensitive Buttons (500g, 1kg bei Gramm-Artikeln)
+- ✅ Loading-States während Speicherung
+- ✅ Einheiten-Anzeige (Stück, Gramm, ml)
+
+**Integration mit OpenFoodFacts:**
+```typescript
+// In handleBarcodeScan():
+const quantity = data.product.quantity || '' // z.B. "500 g"
+const qtyMatch = quantity.match(/^([\d.,]+)\s*([a-zA-Zµ]+)/)
+
+// Parse & Convert:
+// "500 g"  → unit: "Gramm", suggestedQuantity: 500
+// "1 kg"   → unit: "Gramm", suggestedQuantity: 1000
+// "250 ml" → unit: "ml", suggestedQuantity: 250
+// "1 l"    → unit: "ml", suggestedQuantity: 1000
+```
+
+**Wichtige Änderung:** `handleBarcodeScan()` fügt **nicht mehr automatisch** zum Inventar hinzu, sondern gibt Item-Info zurück. Dialog übernimmt das Hinzufügen.
+
+#### 1.4 Seed-Daten (Initial-Befüllung)
 **File:** `food-app/prisma/seed.ts`
 
 16 Basis-Lebensmittel:
@@ -943,16 +1021,53 @@ data/dev.db   # Runtime-DB nicht committen
 - ⚠️ Keine Concurrent Writes (Single-Writer)
 - ✅ Für Haushalts-Use-Case ausreichend
 
-### 4. Fehlende Features (v1.0)
+### 4. Fehlende Features (v1.2)
 - ❌ Ablaufdatum-Tracking
 - ❌ Einkaufslisten
 - ❌ Multi-User Support
 - ❌ PWA Offline-Modus
+- ❌ Toast-Benachrichtigungen (aktuell nur console.log)
 - ✅ Geplant für v2.0
 
 ---
 
 ## Changelog & Version History
+
+### v1.2 (März 2026) - Quantity Input & OpenFoodFacts Enhancement
+**Major Features:**
+- ✅ **AddQuantityDialog**: Wiederverwendbarer Dialog für Mengeneingabe
+  - Number-Input mit Auto-Focus & Enter-Bestätigung
+  - Schnellauswahl-Buttons (1, 2, 5, 10, 500g, 1kg)
+  - Kontext-sensitive Buttons basierend auf Einheit
+  - Loading States & Error Handling
+
+- ✅ **Intelligente Packungsgrößen-Erkennung** (OpenFoodFacts Integration)
+  - Extrahiert Menge aus `product.quantity` (z.B. "500 g", "1 l")
+  - Automatische Konvertierung: kg→g, l→ml, cl→ml
+  - Setzt passende Einheit beim Erstellen neuer Items
+  - Schlägt Menge im Dialog vor (`suggestedQuantity`)
+
+- ✅ **Refactoring: Barcode-Scan Flow**
+  - `handleBarcodeScan()` fügt nicht mehr automatisch hinzu
+  - Gibt Item-Info + suggestedQuantity zurück
+  - Dialog übernimmt Hinzufügen nach User-Bestätigung
+
+**New Components:**
+- `src/components/AddQuantityDialog.tsx` (Dialog)
+- `src/components/ui/label.tsx` (Shadcn Label)
+
+**Modified Components:**
+- `src/components/ItemSearch.tsx` - Dialog-Integration
+- `src/app/add/BarcodeScannerWrapper.tsx` - Dialog-Integration
+- `src/app/actions/inventory.ts` - Packungsgrößen-Parser
+
+**Bug Fixes:**
+- ✅ Behebt hardcoded "quantity: 1" in allen Add-Flows
+- ✅ User kann jetzt beliebige Mengen eingeben
+
+**Docker:**
+- ✅ Image gepusht: `ghcr.io/kroonk/kiidea:latest`
+- ✅ Digest: `sha256:0ccf1a91639cf08555137e0e213403609e90e25fb5c8da8889a6904e978c52c6`
 
 ### v1.1 (März 2026) - GitHub Container Registry Migration
 **Deployment Improvements:**

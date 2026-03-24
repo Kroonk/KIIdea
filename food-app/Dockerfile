@@ -7,17 +7,32 @@ RUN npm ci
 
 FROM base AS builder
 WORKDIR /app
+
+# Installiere OpenSSL im Builder-Stage damit Prisma es erkennen kann
+RUN apt-get update -y && \
+    apt-get install -y openssl && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Generiere Prisma Client
+
+# Setze explizit den Binary Target für Prisma (OpenSSL 3.x in Bookworm)
+ENV PRISMA_CLI_BINARY_TARGETS="debian-openssl-3.0.x"
+
+# Generiere Prisma Client mit korrekter Engine
 RUN npx prisma generate
+
 # Baue Next.js als Standalone
 RUN npm run build
 
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-# openssl is natively integrated in bookworm
+
+# Installiere OpenSSL im Runner-Stage für Prisma Query Engine
+RUN apt-get update -y && \
+    apt-get install -y openssl && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/public ./public
 # Standalone output benötigt diese Verzeichnisse

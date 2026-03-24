@@ -2,21 +2,34 @@
 
 import { useState } from "react"
 import BarcodeScanner from "@/components/BarcodeScanner"
-import { handleBarcodeScan } from "@/app/actions/inventory"
+import { handleBarcodeScan, addToInventory } from "@/app/actions/inventory"
 import { Loader2, CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import AddQuantityDialog from "@/components/AddQuantityDialog"
 
 export default function BarcodeScannerWrapper() {
   const [scanning, setScanning] = useState(false)
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error' | null}>({ text: '', type: null })
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [scannedItem, setScannedItem] = useState<{id: string, name: string, unit: string, suggestedQuantity?: number} | null>(null)
 
   const onScan = async (barcode: string) => {
     setScanning(true)
     setMessage({ text: `Suche EAN ${barcode}...`, type: null })
     try {
       const res = await handleBarcodeScan(barcode)
-      if (res.success) {
-        setMessage({ text: `Hinzugefügt: ${res.itemName}`, type: 'success' })
+      if (res.success && res.item) {
+        // Öffne Dialog für Mengeneingabe
+        setScannedItem({
+          id: res.item.id,
+          name: res.item.name,
+          unit: res.item.unit || "Stück",
+          suggestedQuantity: res.suggestedQuantity || 1
+        })
+        setDialogOpen(true)
+        setMessage({ text: '', type: null })
       } else {
         setMessage({ text: res.message || 'Nicht gefunden.', type: 'error' })
       }
@@ -25,6 +38,23 @@ export default function BarcodeScannerWrapper() {
     } finally {
       setScanning(false)
     }
+  }
+
+  const handleConfirmQuantity = async (quantity: number) => {
+    if (!scannedItem) return
+
+    try {
+      await addToInventory(scannedItem.id, quantity)
+      setMessage({ text: `${quantity} ${scannedItem.unit} ${scannedItem.name} hinzugefügt!`, type: 'success' })
+      setScannedItem(null)
+    } catch (e) {
+      setMessage({ text: 'Fehler beim Hinzufügen.', type: 'error' })
+    }
+  }
+
+  const handleDialogClose = () => {
+    setDialogOpen(false)
+    setScannedItem(null)
   }
 
   if (message.type) {
@@ -47,8 +77,21 @@ export default function BarcodeScannerWrapper() {
   }
 
   return (
-    <div>
-      <BarcodeScanner onScan={onScan} />
-    </div>
+    <>
+      <div>
+        <BarcodeScanner onScan={onScan} />
+      </div>
+
+      {scannedItem && (
+        <AddQuantityDialog
+          open={dialogOpen}
+          onOpenChange={handleDialogClose}
+          itemName={scannedItem.name}
+          itemUnit={scannedItem.unit}
+          suggestedQuantity={scannedItem.suggestedQuantity}
+          onConfirm={handleConfirmQuantity}
+        />
+      )}
+    </>
   )
 }

@@ -6,6 +6,7 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { ChevronsUpDown, Loader2 } from "lucide-react"
+import AddQuantityDialog from "@/components/AddQuantityDialog"
 
 export default function ItemSearch() {
   const [open, setOpen] = useState(false)
@@ -13,6 +14,10 @@ export default function ItemSearch() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<{id: string, name: string, unit: string} | null>(null)
 
   useEffect(() => {
     if (query.length < 2) {
@@ -30,21 +35,33 @@ export default function ItemSearch() {
     return () => clearTimeout(timeoutId)
   }, [query])
 
-  const handleSelect = async (itemId: string, itemName: string) => {
-    setAddingId(itemId)
+  const handleSelect = async (item: any) => {
+    // Öffne Dialog für Mengeneingabe
+    setSelectedItem({
+      id: item.id,
+      name: item.name,
+      unit: item.unit || "Stück"
+    })
+    setOpen(false)
+    setDialogOpen(true)
+  }
+
+  const handleConfirmQuantity = async (quantity: number) => {
+    if (!selectedItem) return
+
+    setAddingId(selectedItem.id)
     try {
-      await addToInventory(itemId, 1) // default quantity = 1
-      setOpen(false)
+      await addToInventory(selectedItem.id, quantity)
       setQuery("")
-      // In einer echten App würde man hier toast() von sonner/react-hot-toast nutzen
-      // Der Kürze halber für das MVP erstmal ein Alert/Log. Wir fügen gleich einen Toast ein.
-      console.log(`1x ${itemName} hinzugefügt!`)
+      console.log(`${quantity}x ${selectedItem.name} hinzugefügt!`)
     } finally {
       setAddingId(null)
+      setSelectedItem(null)
     }
   }
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       {/* @ts-expect-error asChild type mismatch with local Shadcn Button */}
       <PopoverTrigger asChild>
@@ -76,7 +93,7 @@ export default function ItemSearch() {
                   <CommandItem
                     key={item.id}
                     value={item.id}
-                    onSelect={() => handleSelect(item.id, item.name)}
+                    onSelect={() => handleSelect(item)}
                     disabled={addingId !== null}
                     className="flex justify-between items-center py-3 cursor-pointer"
                   >
@@ -93,5 +110,16 @@ export default function ItemSearch() {
         </Command>
       </PopoverContent>
     </Popover>
+
+    {selectedItem && (
+      <AddQuantityDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        itemName={selectedItem.name}
+        itemUnit={selectedItem.unit}
+        onConfirm={handleConfirmQuantity}
+      />
+    )}
+  </>
   )
 }

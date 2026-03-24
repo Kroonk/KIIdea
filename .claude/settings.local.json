@@ -10,7 +10,10 @@
       "Bash(docker-compose down:*)",
       "Bash(docker-compose up:*)",
       "Bash(ls:*)",
-      "Bash(docker login:*)"
+      "Bash(docker login:*)",
+      "Bash(docker run --rm node:20-bookworm-slim sh -c \"apt-cache policy openssl 2>/dev/null || echo ''openssl not in cache''\")",
+      "Bash(docker push:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

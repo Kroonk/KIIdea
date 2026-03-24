@@ -70,6 +70,8 @@ export async function handleBarcodeScan(barcode: string) {
     where: { barcode }
   })
 
+  let suggestedQuantity = 1
+
   // 2. Not found locally, fetch from OpenFoodFacts
   if (!item) {
     try {
@@ -79,13 +81,40 @@ export async function handleBarcodeScan(barcode: string) {
       if (data.status === 1 && data.product) {
         const title = data.product.product_name_de || data.product.product_name || `Unbekanntes Produkt (${barcode})`
         const category = data.product.categories_hierarchy ? data.product.categories_hierarchy[0]?.split(':').pop() : 'Allgemein'
-        
+
+        // Extrahiere Packungsgröße (z.B. "500 g", "1 l", "250 ml")
+        let unit = 'Stück'
+        const quantity = data.product.quantity || ''
+
+        // Parse quantity string (z.B. "500 g" -> unit: "Gramm", suggestedQuantity: 500)
+        const qtyMatch = quantity.match(/^([\d.,]+)\s*([a-zA-Zµ]+)/)
+        if (qtyMatch) {
+          const amount = parseFloat(qtyMatch[1].replace(',', '.'))
+          const unitStr = qtyMatch[2].toLowerCase()
+
+          if (unitStr === 'g' || unitStr.includes('gram')) {
+            unit = 'Gramm'
+            suggestedQuantity = amount
+          } else if (unitStr === 'kg') {
+            unit = 'Gramm'
+            suggestedQuantity = amount * 1000
+          } else if (unitStr === 'ml' || unitStr === 'cl' || unitStr === 'l') {
+            unit = 'ml'
+            if (unitStr === 'l') suggestedQuantity = amount * 1000
+            else if (unitStr === 'cl') suggestedQuantity = amount * 10
+            else suggestedQuantity = amount
+          } else {
+            unit = 'Stück'
+            suggestedQuantity = amount
+          }
+        }
+
         // Save to local DB
         item = await prisma.item.create({
           data: {
             name: title,
             barcode,
-            unit: 'Stück', // Or derive from quantity
+            unit: unit,
             category: category
           }
         })
@@ -95,10 +124,17 @@ export async function handleBarcodeScan(barcode: string) {
     }
   }
 
-  // 3. Add to inventory if found/created
+  // 3. Return item info (don't add to inventory yet - dialog will do that)
   if (item) {
-    await addToInventory(item.id, 1)
-    return { success: true, itemName: item.name }
+    return {
+      success: true,
+      item: {
+        id: item.id,
+        name: item.name,
+        unit: item.unit
+      },
+      suggestedQuantity
+    }
   }
 
   return { success: false, message: 'Produkt nicht gefunden. Bitte manuell hinzufügen.' }
