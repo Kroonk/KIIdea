@@ -33,7 +33,7 @@
 
 Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effizienten Verwaltung von Lebensmitteln mit smarten Rezeptvorschlägen basierend auf Kühlschrank-Inhalt.
 
-**Status:** v1.4 Produktiv (März 2026)
+**Status:** v1.4.1 Produktiv (März 2026)
 **Repository:** https://github.com/Kroonk/KIIdea
 **Docker Image:** `ghcr.io/kroonk/kiidea:latest`
 
@@ -145,7 +145,28 @@ exec node server.js
 
 ---
 
-### 3. Server Actions Konvention
+### 3. Next.js 16 Dynamic Routes (Params Promise) ⚠️ KRITISCH
+
+**Next.js 15+ Breaking Change:** `params` sind jetzt Promises!
+
+```typescript
+// ❌ FALSCH (Next.js 14)
+export default async function Page({ params }: { params: { id: string } }) {
+  const data = await getData(params.id)
+}
+
+// ✅ RICHTIG (Next.js 15+)
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const data = await getData(id)
+}
+```
+
+**WICHTIG:** Alle dynamischen Routes `[id]`, `[slug]` etc. müssen `params` als Promise behandeln!
+
+---
+
+### 4. Server Actions Konvention
 
 **Pattern:**
 ```typescript
@@ -168,7 +189,7 @@ export async function createItem(data) {
 
 ---
 
-### 4. OpenFoodFacts Integration
+### 5. OpenFoodFacts Integration
 
 **API:** `https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
 
@@ -285,6 +306,11 @@ docker compose up -d
 
 ## Changelog (Kurz)
 
+### v1.4.1 (2026-03-24)
+- 🐛 Fix: Rezept-Detail-Seite nach URL-Import (#6)
+  - Next.js 16 Params Promise Compatibility
+  - Rezepte sind nun nach Import direkt aufrufbar
+
 ### v1.4 (2026-03-24)
 - ✅ Backup & Restore (JSON Export/Import)
 - ✅ Einheiten-Editor (10 Einheiten)
@@ -325,7 +351,7 @@ docker compose up -d
 ---
 
 **Letzte Aktualisierung:** 24. März 2026
-**Version:** 1.4 (Backup/Restore & Einheiten-Editor)
+**Version:** 1.4.1 (Next.js 16 Params Fix)
 **Maintainer:** Kroonk
 
 **📚 Für Details siehe:** [FEATURES.md](FEATURES.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
