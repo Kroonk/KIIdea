@@ -14,7 +14,7 @@
 ## Projekt-Übersicht
 Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effizienten Verwaltung von Lebensmitteln mit smarten Rezeptvorschlägen basierend auf Kühlschrank-Inhalt.
 
-**Status:** v1.3 Produktiv (März 2026)
+**Status:** v1.4 Produktiv (März 2026)
 **Repository:** https://github.com/Kroonk/KIIdea
 
 ---
@@ -161,6 +161,50 @@ for (const inv of inventory) {
 - Teilabzug möglich (50g von 200g)
 - Cache Invalidation für Dashboard & Inventar
 
+### 5. Backup & Restore (v1.4)
+
+#### 5.1 Export-Funktion
+**File:** `src/app/actions/backup.ts` → `exportData()`
+
+**Export-Format:**
+```typescript
+{
+  version: "1.4",
+  exportDate: "2026-03-24T...",
+  items: [...],      // Alle Items mit ID, name, barcode, unit, category
+  inventory: [...],  // Alle Vorräte mit ID, quantity, expiresAt, itemId
+  recipes: [...]     // Alle Rezepte mit Zutaten
+}
+```
+
+**Route:** `/backup` - UI für Export/Import mit RadioGroup für Modi
+
+#### 5.2 Import-Funktion
+**Action:** `importData(data, mode)`
+
+**Modi:**
+- **merge**: Bestehende Einträge behalten + Neue hinzufügen (Upsert by ID)
+- **replace**: ALLE Daten löschen → Neu importieren
+
+**Flow:**
+1. Validierung (version, items Array)
+2. Replace Mode: Delete RecipeIngredient → Recipe → Inventory → Item
+3. Upsert Items (by ID)
+4. Upsert Inventory (by ID)
+5. Upsert Recipes + Ingredients (by ID)
+6. Cache Invalidation (/, /inventory, /recipes)
+
+### 6. Einheiten-Editor (v1.4)
+
+**Component:** `EditQuantityDialog.tsx`
+**Action:** `updateInventory(id, quantity, unit?)`
+
+**Features:**
+- Native HTML `<select>` mit 10 Einheiten
+- Einheiten: Stück, Gramm, Kilogramm, ml, Liter, Teelöffel, Esslöffel, Packung, Dose, Bund
+- Wenn Einheit geändert: Update Item.unit via Inventory.itemId
+- Schnellauswahl-Buttons passen sich an gewählte Einheit an
+
 ---
 
 ## Kritische Technische Details
@@ -278,7 +322,7 @@ ports:
 
 ---
 
-## Bekannte Limitierungen (v1.3)
+## Bekannte Limitierungen (v1.4)
 
 - ❌ Ablaufdatum-Tracking
 - ❌ Einkaufslisten
@@ -293,6 +337,17 @@ ports:
 ---
 
 ## Changelog
+
+### v1.4 (März 2026) - Backup/Restore & Einheiten-Editor
+- ✅ **Import/Export-Funktion** (Issue #4): Backup & Restore auf /backup-Seite
+- ✅ **exportData()** Server Action: Exportiert Items, Inventory, Recipes als JSON
+- ✅ **importData()** Server Action: Import mit Merge/Replace-Modi
+- ✅ **Backup-Button**: Database-Icon in Vorrats-Seite für schnellen Zugriff
+- ✅ **Einheiten-Editor** (Issue #5): Maßeinheit im EditQuantityDialog änderbar
+- ✅ **10 Einheiten**: Stück, Gramm, Kilogramm, ml, Liter, Teelöffel, Esslöffel, Packung, Dose, Bund
+- ✅ **updateInventory() erweitert**: Unterstützt optionale Einheiten-Updates
+- ✅ **Neue UI-Komponenten**: Alert & RadioGroup (native HTML-basiert)
+- **Neue Routes:** `/backup`
 
 ### v1.3 (März 2026) - Inventory Management & Dark Mode
 - ✅ **Vorrat Bearbeiten/Löschen**: Inventory-Cards mit Edit & Delete Buttons
@@ -334,24 +389,28 @@ KIIdea/
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── actions/          # Server Actions (Prisma Queries)
-│   │   │   │   ├── inventory.ts  # Inventar + Barcode
+│   │   │   │   ├── inventory.ts  # Inventar + Barcode + Einheit-Update
+│   │   │   │   ├── backup.ts     # Import/Export (v1.4)
 │   │   │   │   ├── match.ts      # Match-Algorithmus
 │   │   │   │   ├── cook.ts       # Koch-Workflow
 │   │   │   │   ├── scrape.ts     # URL-Scraping
 │   │   │   │   └── recipes.ts    # Rezept-CRUD
 │   │   │   ├── page.tsx          # Dashboard
 │   │   │   ├── inventory/page.tsx
+│   │   │   ├── backup/page.tsx   # Backup & Restore (v1.4)
 │   │   │   └── recipes/
 │   │   ├── components/
 │   │   │   ├── AddQuantityDialog.tsx (v1.2)
-│   │   │   ├── EditQuantityDialog.tsx (v1.3)
+│   │   │   ├── EditQuantityDialog.tsx (v1.3, v1.4: Einheiten-Editor)
 │   │   │   ├── InventoryCard.tsx (v1.3)
 │   │   │   ├── ThemeToggle.tsx (v1.3)
 │   │   │   ├── theme-provider.tsx (v1.3)
 │   │   │   ├── ItemSearch.tsx
 │   │   │   ├── BarcodeScanner.tsx
 │   │   │   ├── CookRecipeDialog.tsx
-│   │   │   └── ui/               # Shadcn Components
+│   │   │   └── ui/               # Shadcn/Custom Components
+│   │   │       ├── alert.tsx (v1.4)
+│   │   │       └── radio-group.tsx (v1.4)
 │   │   └── lib/
 │   │       └── prisma.ts         # ⚠️ SINGLETON
 │   ├── prisma/
@@ -392,5 +451,5 @@ KIIdea/
 ---
 
 **Letzte Aktualisierung:** 24. März 2026
-**Version:** 1.3 (Inventory Management & Dark Mode)
+**Version:** 1.4 (Backup/Restore & Einheiten-Editor)
 **Maintainer:** Kroonk
