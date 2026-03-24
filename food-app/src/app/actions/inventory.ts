@@ -1,19 +1,22 @@
 "use server"
 
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
-const prisma = new PrismaClient()
-
 export async function getInventory() {
-  return await prisma.inventory.findMany({
-    include: {
-      item: true
-    },
-    orderBy: {
-      item: { name: 'asc' }
-    }
-  })
+  try {
+    return await prisma.inventory.findMany({
+      include: {
+        item: true
+      },
+      orderBy: {
+        item: { name: 'asc' }
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching inventory:', error)
+    return []
+  }
 }
 
 export async function searchItems(query: string) {

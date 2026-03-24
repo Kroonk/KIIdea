@@ -18,9 +18,10 @@ out
 build
 
 # Prisma
-# We want to ACTUALLY SAVE our master dev.db in Git 
-# so that building the standalone image works! But we ignore local backups
+# We want to ACTUALLY SAVE our master dev.db in food-app/prisma/
+# so that building the standalone image works! But we ignore local runtime DB and backups
 *.db-journal
+data/dev.db
 
 # Environment variables
 .env*.local

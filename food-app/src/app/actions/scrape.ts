@@ -1,10 +1,8 @@
 "use server"
 
 import * as cheerio from 'cheerio'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-
-const prisma = new PrismaClient()
 
 export async function scrapeRecipeUrl(url: string) {
   try {

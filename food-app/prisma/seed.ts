@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 
+// Seed script uses a direct PrismaClient instance (not the singleton from lib/prisma)
 const prisma = new PrismaClient()
 
 async function main() {

@@ -1,44 +1,168 @@
-# Plan.md - Projektstruktur & Nächste Schritte
+# Plan.md - Projektstatus & Entwicklungs-Roadmap
 
-## Aktueller Status
-- **Phase**: Architektur- und Projekt-Setup
-- **Nächster Meilenstein**: Initialisierung des Next.js Projekts und Aufbau des Docker-Environments.
+## 📊 Aktueller Status: **v1.0 - PRODUKTIV** ✅
 
-## Geplanter Aufbau (MVP Scope)
+Alle MVP-Features sind implementiert und getestet. Die Anwendung läuft produktiv im Docker-Container.
 
-### 1. Kernfunktionen für v1.0
-- **Inventar**: Liste der vorhandenen Lebensmittel (CRUD). Hinzufügen per Autocomplete-Suche & Kamera-Barcodescanner (`html5-qrcode`).
-- **Rezepte**: Eigene Rezepte manuell anlegen. Smarter Import via URL-Scraping (Extraktion von `application/ld+json` Metadaten gängiger Rezeptseiten).
-- **Vergleichs-Logik**: Ansicht "Was kann ich kochen?" mit prozentualer Übereinstimmung der Zutaten.
-- **Abbuchungs-Logik**: "Kochen"-Dialog mit abwählbaren Checkboxen vor dem tatsächlichen Datenbank-Abzug.
+## ✅ Abgeschlossene Implementierung (v1.0)
 
-### 2. Technologie-Stack
-- **Framework**: Next.js (App Router, React).
-- **Styling**: Tailwind CSS (Farbschema: Creme-Weiß, Terra-Orange, Olive).
-- **Datenbank**: SQLite via Prisma ORM (Perfekt für kleine/mittlere Home-Server, da eine einzige '.db' Datei gesichert werden muss).
-- **Hosting**: Docker (Standalone Output von Next.js) auf dem lokalen NAS.
+### Core Features
+- [x] **Inventar-Verwaltung**
+  - Manuelle Eingabe mit Autovervollständigung
+  - CRUD-Operationen für Vorräte
+  - Mengenbasierte Verwaltung
 
-### 3. Versionskontrolle (GitHub)
-- Lokales Git Repository im Ordner `KIIdea`.
-- Code wird vom Entwickler verfasst und in Repository gepusht.
+- [x] **Barcode-Scanner**
+  - Integration von `html5-qrcode`
+  - Kamera-basiertes Scannen
+  - OpenFoodFacts API-Integration
+  - Automatisches Caching neuer Produkte
 
-### 4. Datenbank-Schema (Prisma Draft)
-- `Item` (Stammdaten: z.B. Mehl, EAN, Default-Einheit)
-- `Inventory` (Bestand: Menge, Referenz auf Item)
-- `Recipe` (Titel, Beschreibung, Bild-URL, URL-Quelle, Instruktionen)
-- `RecipeIngredient` (Mapping: Menge + Einheit, Referenz auf Recipe und Item)
+- [x] **Rezept-Management**
+  - URL-Import via Cheerio Web-Scraping
+  - Schema.org/JSON-LD Parsing
+  - Automatisches Zutaten-Parsing
+  - Rezept-Detail-Ansichten
 
-## Implementierungs-Roadmap
+- [x] **Smart Matching**
+  - Live-Berechnung der Rezept-Übereinstimmung
+  - Prozentuale Verfügbarkeits-Anzeige
+  - Anzeige fehlender Zutaten
+  - Sortierung nach Match-Prozentsatz
 
-- [ ] **Schritt 1**: Next.js Bootstrap (`create-next-app`) mit Tailwind CSS & TypeScript im Ordner initialisieren.
-- [ ] **Schritt 2**: Projekt von Standard-Design befreien und rohe Globals (Warme Farben) setzen. Git Init.
-- [ ] **Schritt 3**: Prisma ORM einrichten, SQLite DB aufsetzen und erstes Schema (`Item` + `Inventory`) definieren.
-- [ ] **Schritt 4**: Dockerfile und docker-compose.yml für das einfache Deployment vorbereiten.
-- [ ] **Schritt 5**: API-Routings und Frontend-Komponenten für das Inventar (Liste + Hinzufügen via Search/Scanner) bauen.
-- [ ] **Schritt 6**: Scraping-Logik für Rezept-URLs in Next.js API-Route bauen.
-- [ ] **Schritt 7**: "Kochen" Workflow und Match-Algorithmus implementieren.
+- [x] **Koch-Workflow**
+  - Interaktiver Dialog mit Zutatenliste
+  - Flexible Zutatenauswahl
+  - Automatischer Inventarabzug
+  - Mengenberechnung
 
-## Nächste To-Dos
-1. Die KI generiert nun den detaillierten Umsetzungsplan (`implementation_plan.md`) und die Aufgabenliste (`task.md`).
-2. Bestätigen des Plans mit dem Nutzer.
-3. Start des Setups (Schritt 1).
+### Technische Infrastruktur
+- [x] **Next.js Setup**
+  - App Router Architektur
+  - Server Actions für Daten-Operationen
+  - Standalone Build-Output
+
+- [x] **Prisma ORM**
+  - SQLite Datenbank-Schema
+  - Migrations-System
+  - Seed-Daten
+  - Singleton Pattern für Prisma Client
+
+- [x] **Docker Deployment**
+  - Multi-Stage Dockerfile (Node 20 Bookworm Slim)
+  - docker-compose.yml Konfiguration
+  - Volume-Management für persistente DB
+  - Intelligentes start.sh Script
+
+- [x] **Code-Qualität**
+  - Zentrale Prisma Client Instanz
+  - Error Handling in Server Actions
+  - TypeScript Typisierung
+  - Responsive UI mit Tailwind CSS 4
+
+### Dokumentation
+- [x] Brain.md - Technische Architektur-Dokumentation
+- [x] README.md - Umfassende Projekt-Dokumentation
+- [x] Inline-Code-Kommentare
+- [x] Prisma Schema Dokumentation
+
+## 🔄 Letzte Durchgeführte Verbesserungen
+
+### Behobene Probleme (März 2026)
+1. **Server-Error beim Laden** ✅
+   - **Problem**: `PrismaClient` wurde in jeder Action neu instanziiert
+   - **Lösung**: Zentrale Singleton-Instanz in `lib/prisma.ts`
+
+2. **Fehlende Datenbank im Container** ✅
+   - **Problem**: Volume-Mounting überschrieb Container-Dateien
+   - **Lösung**: DB-Copy-Logik in `start.sh` + korrektes Volume-Mapping
+
+3. **Fehlende Error Handling** ✅
+   - **Problem**: Unbehandelte Prisma-Fehler führten zu Crashes
+   - **Lösung**: Try-Catch Blöcke in kritischen Actions
+
+4. **Unvollständige Metadata** ✅
+   - **Problem**: Standard Next.js Titel/Beschreibung
+   - **Lösung**: Angepasste Metadata + deutsche Sprache
+
+## 🚀 Roadmap v2.0 (Zukünftig)
+
+### Geplante Features
+- [ ] **PWA-Funktionalität**
+  - Service Worker für Offline-Modus
+  - App-Installation via Manifest
+  - Push-Benachrichtigungen
+
+- [ ] **Erweiterte Inventar-Features**
+  - Ablaufdatum-Tracking
+  - Automatische Benachrichtigungen vor Ablauf
+  - Mengeneinheiten-Konverter
+  - Kategorisierung & Filter
+
+- [ ] **Einkaufslisten**
+  - Automatische Generierung aus fehlenden Zutaten
+  - Manuelle Listen-Verwaltung
+  - Export/Share-Funktionalität
+
+- [ ] **Rezept-Erweiterungen**
+  - Favoriten & Bewertungen
+  - Zubereitungszeit-Filter
+  - Schwierigkeitsgrad
+  - Nährwertinformationen
+  - Eigene manuelle Rezepteingabe (UI fehlt noch)
+
+- [ ] **Social Features**
+  - Rezept-Teilen via QR-Code
+  - Export als PDF
+  - Multi-User Support mit Rollen
+
+- [ ] **UX-Verbesserungen**
+  - Dark Mode Toggle
+  - Erweiterte Such- & Filterfunktionen
+  - Drag & Drop für Rezeptreihenfolge
+  - Bildupload für eigene Rezepte
+
+### Technische Verbesserungen
+- [ ] **Performance**
+  - React Query für Caching
+  - Lazy Loading für Bilder
+  - Virtualisierung für lange Listen
+
+- [ ] **Testing**
+  - Unit Tests mit Vitest
+  - E2E Tests mit Playwright
+  - API-Tests für Server Actions
+
+- [ ] **Monitoring**
+  - Error Tracking (Sentry)
+  - Performance Monitoring
+  - Logging-System
+
+- [ ] **Security**
+  - Rate Limiting für API-Calls
+  - Input Validation & Sanitization
+  - CSRF Protection
+
+## 📝 Maintenance & Support
+
+### Regelmäßige Updates
+- Dependency Updates (monatlich)
+- Security Patches (bei Bedarf)
+- Performance Optimierungen
+- Bug Fixes
+
+### Backup-Strategie
+- SQLite DB-Backup via NAS
+- Git Repository auf GitHub
+- Docker Image-Versionierung
+
+## 🔗 Wichtige Links
+
+- **Repository**: https://github.com/Kroonk/KIIdea
+- **Dokumentation**: [README.md](README.md)
+- **Architektur**: [Brain.md](Brain.md)
+
+---
+
+**Stand**: März 2026 - v1.0 Produktiv
+**Nächster Meilenstein**: v2.0 - PWA & Erweiterte Features
