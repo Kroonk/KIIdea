@@ -94,7 +94,7 @@ curl -X PATCH -H "Accept: application/vnd.github+json" \
 
 Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effizienten Verwaltung von Lebensmitteln mit smarten Rezeptvorschlägen basierend auf Kühlschrank-Inhalt.
 
-**Status:** v2.2 Produktiv (März 2026)
+**Status:** v2.3 Produktiv (März 2026)
 **Repository:** https://github.com/Kroonk/KIIdea
 **Docker Image:** `ghcr.io/kroonk/kiidea:latest`
 
@@ -242,6 +242,7 @@ mkdir -p /app/data
 if [ ! -f /app/data/dev.db ]; then
   echo "Keine Datenbank im Volume gefunden. Kopiere initiale Datenbank..."
   cp /app/prisma/dev.db /app/data/dev.db
+  node /app/seed-admin.js  # Erstellt Admin-User beim ersten Start
 fi
 
 exec node server.js
@@ -249,6 +250,11 @@ exec node server.js
 
 **Volume Mapping:** `./data:/app/data` (getrennt von `/app/prisma`)
 **DATABASE_URL:** `file:/app/data/dev.db`
+
+**⚠️ WICHTIG – DB nie in Git tracken:**
+- `*.db` ist in `.gitignore` und `.dockerignore`
+- `git pull` kann NIEMALS Nutzerdaten überschreiben
+- Master-DB wird im Docker-Build via `prisma migrate deploy` erzeugt (kein committed dev.db)
 
 **Siehe:** [DEPLOYMENT.md - Volume-Strategie](DEPLOYMENT.md#volume-strategie)
 
@@ -430,6 +436,13 @@ docker compose up -d
 
 ## Changelog (Kurz)
 
+### v2.3 (2026-03-25) — Datenverlust-Fix
+- ✅ `food-app/prisma/dev.db` und `food-app/dev.db` aus Git entfernt
+- ✅ `*.db` in `.gitignore` und `.dockerignore` — git pull überschreibt NIE Nutzerdaten
+- ✅ Dockerfile: Master-DB via `prisma migrate deploy` erzeugt (kein committed dev.db)
+- ✅ `docker-compose.yml`: DATABASE_URL Quotes-Bug gefixt (`"file:..."` → `file:...`)
+- ✅ GitHub Issue #12 geschlossen
+
 ### v2.2 (2026-03-25) — Hamburger-Menü
 - ✅ UserMenu-Komponente (Popover-Dropdown) oben rechts auf Desktop und Mobile
 - ✅ Mobile Top-Header (sticky) mit Logo + Hamburger-Menü
@@ -488,7 +501,7 @@ docker compose up -d
 ---
 
 **Letzte Aktualisierung:** 25. März 2026
-**Version:** 2.2 (Hamburger-Menü: UserMenu-Popover, Mobile Top-Header)
+**Version:** 2.3 (Datenverlust-Fix: DB aus Git, Dockerfile migrate, docker-compose Quotes-Bug)
 **Maintainer:** Kroonk
 
 **📚 Für Details siehe:** [FEATURES.md](FEATURES.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
