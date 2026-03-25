@@ -94,7 +94,7 @@ curl -X PATCH -H "Accept: application/vnd.github+json" \
 
 Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effizienten Verwaltung von Lebensmitteln mit smarten Rezeptvorschlägen basierend auf Kühlschrank-Inhalt.
 
-**Status:** v2.1 Produktiv (März 2026)
+**Status:** v2.2 Produktiv (März 2026)
 **Repository:** https://github.com/Kroonk/KIIdea
 **Docker Image:** `ghcr.io/kroonk/kiidea:latest`
 
@@ -108,6 +108,7 @@ Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effiz
 - ✅ Einheiten-Editor (10 Einheiten)
 - ✅ **Benutzeraccounts & Login** (Multi-Tenant, Admin/User Rollen)
 - ✅ **Responsives Mobile-Design** (Bottom-Nav, Safe-Area, Padding)
+- ✅ **Hamburger-Menü** (UserMenu-Popover oben rechts, Desktop + Mobile-Header)
 
 **Siehe:** [FEATURES.md](FEATURES.md) für detaillierte Implementierung
 
@@ -358,6 +359,7 @@ KIIdea/
     │   │   └── recipes/
     │   ├── components/
     │   │   ├── Navigation.tsx    # Desktop + Mobile Nav (Auth-aware)
+    │   │   ├── UserMenu.tsx      # Hamburger-Popover (Profil, Admin, Theme, Logout)
     │   │   ├── ThemeToggle.tsx
     │   │   ├── CookRecipeDialog.tsx (mit Props: buttonClassName, buttonLabel)
     │   │   ├── InventoryCard.tsx  # Mit ExpiryBadge (Ablaufdatum-Anzeige)
@@ -428,6 +430,12 @@ docker compose up -d
 
 ## Changelog (Kurz)
 
+### v2.2 (2026-03-25) — Hamburger-Menü
+- ✅ UserMenu-Komponente (Popover-Dropdown) oben rechts auf Desktop und Mobile
+- ✅ Mobile Top-Header (sticky) mit Logo + Hamburger-Menü
+- ✅ Menü enthält: Benutzername, Profil & Passwort, Admin, Backup (Admin-only), Theme, Logout
+- ✅ GitHub Issues #10 (Menu page) und #11 (Hamburger Menu) geschlossen
+
 ### v2.1 (2026-03-25) — Code-Optimierung
 - ✅ Toast-System (sonner) — alle alert() ersetzt
 - ✅ Input Sanitization für Scraping (HTML-Stripping)
@@ -480,7 +488,7 @@ docker compose up -d
 ---
 
 **Letzte Aktualisierung:** 25. März 2026
-**Version:** 2.1 (Code-Optimierung: Toast, Sanitization, Rate Limiting, Image Opt., Ablaufdatum UI)
+**Version:** 2.2 (Hamburger-Menü: UserMenu-Popover, Mobile Top-Header)
 **Maintainer:** Kroonk
 
 **📚 Für Details siehe:** [FEATURES.md](FEATURES.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
