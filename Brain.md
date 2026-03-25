@@ -2,9 +2,18 @@
 
 > **⚠️ META-REGELN FÜR CLAUDE:**
 > 1. Diese Datei ist das **Projekt-Gedächtnis**. Nach **jeder Code-Änderung** MUSS die Brain.md aktualisiert werden.
-> 2. Behandle diese Datei wie dein Langzeitgedächtnis. Nutze sie proaktiv!
-> 3. **Dokumentations-Struktur:** Detaillierte Infos sind ausgelagert - verweise immer auf die entsprechenden Dateien!
-> 4. **Docs auto-pflegen:** Siehe Tabelle "Automatische Dokumentations-Pflege" weiter unten — bei jeder Aufgabe die passenden Dateien mitaktualisieren.
+> 2. **AUTO-OPTIMIERUNG TRIGGER:** Wenn der User "Optimiere mein System", "Optimierung" oder ähnliche Befehle gibt:
+>    - Rufe die ältesten 3 offenen GitHub Issues ab: `curl -s "https://api.github.com/repos/Kroonk/KIIdea/issues?state=open&sort=created&direction=asc&per_page=3"`
+>    - Arbeite diese Issues nacheinander ab (implementieren, testen, committen)
+>    - Schließe jedes Issue nach Fertigstellung mit: `curl -X PATCH -H "Accept: application/vnd.github+json" https://api.github.com/repos/Kroonk/KIIdea/issues/{issue_number} -d '{"state":"closed"}'`
+>    - Aktualisiere die Brain.md mit den neuen Features
+>    - **DEPLOYMENT:** Nach Abschluss IMMER ausführen:
+>      1. `git push` - Änderungen auf GitHub pushen
+>      2. Docker Build & Push: `cd food-app && docker buildx build --platform linux/amd64 -t ghcr.io/kroonk/kiidea:latest --push .`
+>      3. User kann dann direkt auf NAS deployen mit: `docker compose pull && docker compose up -d`
+> 3. Behandle diese Datei wie dein Langzeitgedächtnis. Nutze sie proaktiv!
+> 4. **Dokumentations-Struktur:** Detaillierte Infos sind ausgelagert - verweise immer auf die entsprechenden Dateien!
+> 5. **Docs auto-pflegen:** Siehe Tabelle "Automatische Dokumentations-Pflege" weiter unten — bei jeder Aufgabe die passenden Dateien mitaktualisieren.
 
 ---
 
