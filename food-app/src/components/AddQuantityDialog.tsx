@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Package } from "lucide-react"
+import { toast } from "sonner"
+import QuickSelectButtons from "@/components/QuickSelectButtons"
 
 interface AddQuantityDialogProps {
   open: boolean
@@ -30,7 +32,7 @@ export default function AddQuantityDialog({
   const handleConfirm = async () => {
     const qty = parseFloat(quantity)
     if (isNaN(qty) || qty <= 0) {
-      alert("Bitte eine gültige Menge eingeben!")
+      toast.error("Bitte eine gültige Menge eingeben!")
       return
     }
 
@@ -41,7 +43,7 @@ export default function AddQuantityDialog({
       setQuantity(suggestedQuantity.toString())
     } catch (e) {
       console.error("Fehler beim Hinzufügen:", e)
-      alert("Fehler beim Hinzufügen. Bitte erneut versuchen.")
+      toast.error("Fehler beim Hinzufügen", { description: "Bitte erneut versuchen." })
     } finally {
       setLoading(false)
     }
@@ -102,66 +104,11 @@ export default function AddQuantityDialog({
           </div>
 
           {/* Schnellauswahl-Buttons */}
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("1")}
-              disabled={loading}
-            >
-              1
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("2")}
-              disabled={loading}
-            >
-              2
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("5")}
-              disabled={loading}
-            >
-              5
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("10")}
-              disabled={loading}
-            >
-              10
-            </Button>
-            {itemUnit.toLowerCase().includes("gramm") && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity("500")}
-                  disabled={loading}
-                >
-                  500g
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity("1000")}
-                  disabled={loading}
-                >
-                  1kg
-                </Button>
-              </>
-            )}
-          </div>
+          <QuickSelectButtons
+            unit={itemUnit}
+            onSelect={(qty) => setQuantity(qty.toString())}
+            disabled={loading}
+          />
         </div>
 
         <DialogFooter className="flex-row gap-2 sm:gap-0">

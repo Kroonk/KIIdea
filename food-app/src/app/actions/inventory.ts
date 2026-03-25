@@ -51,7 +51,7 @@ export async function addToInventory(itemId: string, quantity: number) {
   revalidatePath('/inventory')
 }
 
-export async function updateInventory(id: string, quantity: number, unit?: string) {
+export async function updateInventory(id: string, quantity: number, unit?: string, expiresAt?: Date | null) {
   const user = await requireAuth()
 
   // Verify ownership
@@ -70,7 +70,10 @@ export async function updateInventory(id: string, quantity: number, unit?: strin
 
   await prisma.inventory.update({
     where: { id },
-    data: { quantity }
+    data: {
+      quantity,
+      ...(expiresAt !== undefined && { expiresAt: expiresAt || null })
+    }
   })
   revalidatePath('/inventory')
   revalidatePath('/')

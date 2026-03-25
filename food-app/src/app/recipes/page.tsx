@@ -2,6 +2,7 @@ import { getRecipes } from "@/app/actions/recipes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Plus, ChefHat } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 
 export const dynamic = "force-dynamic"
@@ -49,10 +50,11 @@ export default async function RecipesPage() {
               <Card className="overflow-hidden h-full hover:border-primary/50 hover:shadow-md transition-all group">
                 {recipe.imageUrl ? (
                   <div className="w-full h-48 bg-muted relative overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={recipe.imageUrl} 
-                      alt={recipe.title} 
+                    <Image
+                      src={recipe.imageUrl}
+                      alt={recipe.title}
+                      width={400}
+                      height={192}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>

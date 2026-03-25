@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { ArrowLeft, ChefHat, CheckCircle2, XCircle } from "lucide-react"
 import Link from "next/link"
 import CookRecipeDialog from "@/components/CookRecipeDialog"
+import Image from "next/image"
 
 export default async function RecipeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,10 +26,12 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
 
       <div className="rounded-2xl overflow-hidden shadow-sm bg-card border">
         {recipe.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={recipe.imageUrl}
             alt={recipe.title}
+            width={800}
+            height={384}
+            priority
             className="w-full h-64 md:h-96 object-cover"
           />
         ) : (

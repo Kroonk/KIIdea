@@ -46,6 +46,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 COPY start.sh ./
+COPY seed-admin.js ./
+# bcryptjs wird für das Admin-Seed-Script benötigt
+COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 RUN chmod +x start.sh
 
 EXPOSE 3000

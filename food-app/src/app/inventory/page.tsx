@@ -53,6 +53,7 @@ export default async function InventoryPage() {
               itemUnit={inv.item.unit}
               itemCategory={inv.item.category || undefined}
               quantity={inv.quantity}
+              expiresAt={inv.expiresAt}
             />
           ))}
         </div>

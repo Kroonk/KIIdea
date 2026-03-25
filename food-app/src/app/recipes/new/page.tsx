@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, ArrowLeft, Link as LinkIcon, Download } from "lucide-react"
+import { toast } from "sonner"
 import Link from "next/link"
 import { scrapeRecipeUrl } from "@/app/actions/scrape"
 
@@ -19,17 +20,19 @@ export default function NewRecipePage() {
     e.preventDefault()
     if (!url) return
     setLoading(true)
-    
+    const toastId = toast.loading("Rezept wird importiert...", { description: "Dies kann einen Moment dauern." })
+
     try {
       const res = await scrapeRecipeUrl(url)
       if (res.success && res.recipeId) {
+        toast.success("Rezept erfolgreich importiert!", { id: toastId })
         router.push(`/recipes/${res.recipeId}`)
       } else {
-        alert(res.message || "Fehler beim Importieren.")
+        toast.error(res.message || "Fehler beim Importieren.", { id: toastId })
         setLoading(false)
       }
     } catch(err) {
-      alert("Fehler aufgetreten.")
+      toast.error("Fehler aufgetreten.", { id: toastId })
       setLoading(false)
     }
   }
@@ -102,7 +105,7 @@ export default function NewRecipePage() {
               </div>
               
               <div className="mt-4 border-t pt-4">
-                <Button className="w-full" type="button" onClick={() => alert("Manueller Speicher-Flow im MVP zunächst nur als Platzhalter. Fokus auf URL Import!")}>
+                <Button className="w-full" type="button" onClick={() => toast.info("Manuelles Speichern kommt bald!", { description: "Aktuell nur URL-Import verfügbar." })}>
                   Rezept speichern
                 </Button>
               </div>

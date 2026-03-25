@@ -34,7 +34,7 @@
 
 Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effizienten Verwaltung von Lebensmitteln mit smarten Rezeptvorschlägen basierend auf Kühlschrank-Inhalt.
 
-**Status:** v2.0 Produktiv (März 2026)
+**Status:** v2.1 Produktiv (März 2026)
 **Repository:** https://github.com/Kroonk/KIIdea
 **Docker Image:** `ghcr.io/kroonk/kiidea:latest`
 
@@ -64,6 +64,7 @@ Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effiz
 - **Auth:** bcryptjs (Password Hashing) + Cookie-basierte Sessions
 - **UI:** Shadcn UI, Lucide Icons, Geist Fonts
 - **Theme:** next-themes (Light/Dark/System)
+- **Notifications:** sonner (Toast-System)
 - **Special:** html5-qrcode, cheerio, cmdk
 
 ### Architektur-Entscheidungen
@@ -283,8 +284,9 @@ KIIdea/
     │   │   │   ├── backup.ts     # Import/Export (Admin-only)
     │   │   │   ├── match.ts      # Match-Algorithmus + getRecipeMatchInfo
     │   │   │   ├── cook.ts       # Koch-Workflow
-    │   │   │   ├── scrape.ts     # URL-Scraping (verbessert)
+    │   │   │   ├── scrape.ts     # URL-Scraping (sanitized, rate-limited)
     │   │   │   └── recipes.ts    # Rezept-CRUD
+    │   │   ├── error.tsx         # Error Boundary (globale Fehlerseite)
     │   │   ├── page.tsx          # Dashboard
     │   │   ├── login/page.tsx    # Login-Seite
     │   │   ├── register/page.tsx # Registrierung
@@ -298,12 +300,16 @@ KIIdea/
     │   │   ├── Navigation.tsx    # Desktop + Mobile Nav (Auth-aware)
     │   │   ├── ThemeToggle.tsx
     │   │   ├── CookRecipeDialog.tsx (mit Props: buttonClassName, buttonLabel)
-    │   │   ├── InventoryCard.tsx
-    │   │   ├── ItemSearch.tsx
-    │   │   ├── BarcodeScanner.tsx
+    │   │   ├── InventoryCard.tsx  # Mit ExpiryBadge (Ablaufdatum-Anzeige)
+    │   │   ├── ItemSearch.tsx    # Typisiert (Item[] statt any[])
+    │   │   ├── QuickSelectButtons.tsx  # Extrahierte Schnellauswahl
+    │   │   ├── BarcodeScanner.tsx      # Dynamic Import (SSR:false)
     │   │   └── ui/               # Shadcn/Custom Components
     │   └── lib/
-    │       └── prisma.ts         # ⚠️ SINGLETON
+    │       ├── prisma.ts         # ⚠️ SINGLETON
+    │       ├── sanitize.ts       # HTML-Sanitization für Scraping
+    │       ├── ratelimit.ts      # In-Memory Rate Limiter
+    │       └── errors.ts         # AppError + handleAction Helper
     ├── prisma/
     │   ├── schema.prisma         # 6 Models (User, Session, Item, Inventory, Recipe, RecipeIngredient)
     │   ├── dev.db                # Master-DB (im Image)
@@ -315,14 +321,14 @@ KIIdea/
 
 ---
 
-## Bekannte Limitierungen (v2.0)
+## Bekannte Limitierungen (v2.1)
 
-- ❌ Ablaufdatum-Tracking (Feld existiert, UI fehlt)
 - ❌ Einkaufslisten
 - ❌ PWA Offline-Modus
-- ❌ Toast-Benachrichtigungen (aktuell nur alert())
 - ❌ Nicht alle Websites unterstützen Schema.org
 - ❌ Barcode-Scanner benötigt HTTPS/Localhost (Kamera-Zugriff)
+- ❌ Accessibility Audit ausstehend
+- ❌ Unit Tests fehlen
 
 **Geplant für:** v2.1+ (siehe [CHANGELOG.md](CHANGELOG.md))
 
@@ -361,6 +367,19 @@ docker compose up -d
 ---
 
 ## Changelog (Kurz)
+
+### v2.1 (2026-03-25) — Code-Optimierung
+- ✅ Toast-System (sonner) — alle alert() ersetzt
+- ✅ Input Sanitization für Scraping (HTML-Stripping)
+- ✅ In-Memory Rate Limiting (5 Scrapes/h pro User)
+- ✅ Error Handling Factory (AppError + handleAction)
+- ✅ Error Boundaries (Next.js error.tsx)
+- ✅ TypeScript: `any` → `Item[]` in ItemSearch.tsx
+- ✅ Code Deduplication (QuickSelectButtons extrahiert)
+- ✅ Next.js Image Optimization (AVIF/WebP, remotePatterns)
+- ✅ Dynamic Import BarcodeScanner (~200KB gespart)
+- ✅ Ablaufdatum UI (ExpiryBadge + DatePicker)
+- ✅ Loading States Scraping (toast.loading)
 
 ### v2.0 (2026-03-25)
 - ✅ Benutzeraccounts & Login (bcryptjs + Cookie-Sessions)
@@ -401,7 +420,7 @@ docker compose up -d
 ---
 
 **Letzte Aktualisierung:** 25. März 2026
-**Version:** 2.0 (Benutzeraccounts, Responsive, Scraping-Fix)
+**Version:** 2.1 (Code-Optimierung: Toast, Sanitization, Rate Limiting, Image Opt., Ablaufdatum UI)
 **Maintainer:** Kroonk
 
 **📚 Für Details siehe:** [FEATURES.md](FEATURES.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

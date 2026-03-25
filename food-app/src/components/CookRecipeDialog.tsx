@@ -14,6 +14,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { deductIngredients } from "@/app/actions/cook"
 import { Loader2, Utensils } from "lucide-react"
+import { toast } from "sonner"
 
 interface CookRecipeDialogProps {
   recipe: { id: string; title: string }
@@ -49,7 +50,7 @@ export default function CookRecipeDialog({ recipe, availableIngredients, buttonC
     
     setLoading(false)
     setOpen(false)
-    alert("Guten Appetit! Zutaten wurden vom Vorrat abgezogen.")
+    toast.success("Guten Appetit!", { description: "Zutaten wurden vom Vorrat abgezogen." })
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Refrigerator, BookOpen, PlusCircle, Shield, LogOut } from "lucide-react"
+import { Home, Refrigerator, BookOpen, PlusCircle, Shield, LogOut, UserCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "./ThemeToggle"
 import { logout } from "@/app/actions/auth"
@@ -62,7 +62,10 @@ export default function Navigation({ username, isAdmin }: { username?: string; i
           </nav>
           <div className="flex items-center gap-1 ml-4 pl-4 border-l">
             {username && (
-              <span className="text-sm text-muted-foreground mr-2">{username}</span>
+              <Link href="/profile" className="text-sm text-muted-foreground mr-2 hover:text-primary transition-colors flex items-center gap-1" title="Profil">
+                <UserCircle className="w-4 h-4" />
+                {username}
+              </Link>
             )}
             <ThemeToggle />
             <form action={logout}>

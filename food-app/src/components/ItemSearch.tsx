@@ -7,11 +7,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button"
 import { ChevronsUpDown, Loader2 } from "lucide-react"
 import AddQuantityDialog from "@/components/AddQuantityDialog"
+import { toast } from "sonner"
+import type { Item } from "@prisma/client"
 
 export default function ItemSearch() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
 
@@ -35,7 +37,7 @@ export default function ItemSearch() {
     return () => clearTimeout(timeoutId)
   }, [query])
 
-  const handleSelect = async (item: any) => {
+  const handleSelect = async (item: Item) => {
     // Öffne Dialog für Mengeneingabe
     setSelectedItem({
       id: item.id,
@@ -53,7 +55,7 @@ export default function ItemSearch() {
     try {
       await addToInventory(selectedItem.id, quantity)
       setQuery("")
-      console.log(`${quantity}x ${selectedItem.name} hinzugefügt!`)
+      toast.success(`${quantity} ${selectedItem.unit} ${selectedItem.name} hinzugefügt!`)
     } finally {
       setAddingId(null)
       setSelectedItem(null)

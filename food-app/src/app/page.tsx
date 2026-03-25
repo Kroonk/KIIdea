@@ -2,6 +2,7 @@ import { getMatchedRecipes } from "@/app/actions/match"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { ChefHat, CheckCircle2, XCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import CookRecipeDialog from "@/components/CookRecipeDialog"
 
@@ -42,8 +43,7 @@ export default async function Home() {
           {matched.map((m) => (
             <Card key={m.recipe.id} className="overflow-hidden flex flex-col hover:border-primary/50 transition-all shadow-sm">
               {m.recipe.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.recipe.imageUrl} alt={m.recipe.title} className="w-full h-48 object-cover" />
+                <Image src={m.recipe.imageUrl} alt={m.recipe.title} width={400} height={192} className="w-full h-48 object-cover" />
               ) : (
                 <div className="w-full h-48 bg-muted/50 flex items-center justify-center">
                   <ChefHat className="w-10 h-10 text-muted-foreground/30" />

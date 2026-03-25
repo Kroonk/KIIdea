@@ -170,6 +170,42 @@ export async function deleteUser(userId: string) {
   return { success: true }
 }
 
+// Change own password
+export async function changePassword(formData: FormData) {
+  const user = await requireAuth()
+  const currentPassword = formData.get("currentPassword") as string
+  const newPassword = formData.get("newPassword") as string
+  const confirmPassword = formData.get("confirmPassword") as string
+
+  if (!currentPassword || !newPassword) {
+    return { error: "Alle Felder sind erforderlich." }
+  }
+  if (newPassword.length < 6) {
+    return { error: "Neues Passwort muss mindestens 6 Zeichen haben." }
+  }
+  if (newPassword !== confirmPassword) {
+    return { error: "Neue Passwörter stimmen nicht überein." }
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+  if (!dbUser) {
+    return { error: "Benutzer nicht gefunden." }
+  }
+
+  const valid = await bcrypt.compare(currentPassword, dbUser.password)
+  if (!valid) {
+    return { error: "Aktuelles Passwort ist falsch." }
+  }
+
+  const hash = await bcrypt.hash(newPassword, 12)
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hash }
+  })
+
+  return { success: true }
+}
+
 // Admin: toggle user role
 export async function toggleUserRole(userId: string) {
   const admin = await requireAdmin()

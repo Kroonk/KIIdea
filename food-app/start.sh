@@ -6,8 +6,11 @@ mkdir -p /app/data
 if [ ! -f /app/data/dev.db ]; then
   echo "Keine Datenbank im Volume gefunden. Kopiere initiale Datenbank..."
   cp /app/prisma/dev.db /app/data/dev.db
-  # Setze Prisma auf Stand
   echo "Initialisierung abgeschlossen."
+
+  # Seed admin user on first boot
+  echo "Erstelle Admin-Account..."
+  node /app/seed-admin.js
 fi
 
 # Starte Next.js Server

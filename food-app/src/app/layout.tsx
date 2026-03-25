@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import Navigation from "@/components/Navigation";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getCurrentUser } from "@/app/actions/auth";
+import { Toaster } from "sonner";
 
 export default async function RootLayout({
   children,
@@ -43,6 +44,7 @@ export default async function RootLayout({
           <main className="container mx-auto min-h-screen px-4 md:px-6 py-6">
             {children}
           </main>
+          <Toaster position="bottom-center" richColors closeButton />
         </ThemeProvider>
       </body>
     </html>

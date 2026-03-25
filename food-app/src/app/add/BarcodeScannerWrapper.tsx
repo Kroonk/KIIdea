@@ -1,9 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import BarcodeScanner from "@/components/BarcodeScanner"
+import dynamic from "next/dynamic"
 import { handleBarcodeScan, addToInventory } from "@/app/actions/inventory"
 import { Loader2, CheckCircle, XCircle } from "lucide-react"
+
+const BarcodeScanner = dynamic(() => import("@/components/BarcodeScanner"), {
+  loading: () => (
+    <div className="flex items-center justify-center p-8 bg-muted/20 border rounded-lg gap-2">
+      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      <span className="text-sm text-muted-foreground">Scanner wird geladen...</span>
+    </div>
+  ),
+  ssr: false,
+})
 import { Button } from "@/components/ui/button"
 import AddQuantityDialog from "@/components/AddQuantityDialog"
 

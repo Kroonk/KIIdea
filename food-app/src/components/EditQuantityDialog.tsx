@@ -5,7 +5,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Edit3 } from "lucide-react"
+import { Loader2, Edit3, CalendarIcon, X } from "lucide-react"
+import { toast } from "sonner"
+import QuickSelectButtons from "@/components/QuickSelectButtons"
 import { cn } from "@/lib/utils"
 
 interface EditQuantityDialogProps {
@@ -14,7 +16,8 @@ interface EditQuantityDialogProps {
   itemName: string
   itemUnit?: string
   currentQuantity: number
-  onConfirm: (quantity: number, unit?: string) => Promise<void>
+  currentExpiresAt?: Date | null
+  onConfirm: (quantity: number, unit?: string, expiresAt?: Date | null) => Promise<void>
 }
 
 const UNITS = [
@@ -36,21 +39,26 @@ export default function EditQuantityDialog({
   itemName,
   itemUnit = "Stück",
   currentQuantity,
+  currentExpiresAt,
   onConfirm
 }: EditQuantityDialogProps) {
   const [quantity, setQuantity] = useState(currentQuantity.toString())
   const [unit, setUnit] = useState(itemUnit)
   const [loading, setLoading] = useState(false)
+  const [expiresAt, setExpiresAt] = useState<string>(
+    currentExpiresAt ? new Date(currentExpiresAt).toISOString().split("T")[0] : ""
+  )
 
   useEffect(() => {
     setQuantity(currentQuantity.toString())
     setUnit(itemUnit)
-  }, [currentQuantity, itemUnit, open])
+    setExpiresAt(currentExpiresAt ? new Date(currentExpiresAt).toISOString().split("T")[0] : "")
+  }, [currentQuantity, itemUnit, currentExpiresAt, open])
 
   const handleConfirm = async () => {
     const qty = parseFloat(quantity)
     if (isNaN(qty) || qty <= 0) {
-      alert("Bitte eine gültige Menge eingeben!")
+      toast.error("Bitte eine gültige Menge eingeben!")
       return
     }
 
@@ -58,11 +66,12 @@ export default function EditQuantityDialog({
     try {
       // Nur Einheit übergeben wenn sie sich geändert hat
       const unitChanged = unit !== itemUnit
-      await onConfirm(qty, unitChanged ? unit : undefined)
+      const newExpiresAt = expiresAt ? new Date(expiresAt) : null
+      await onConfirm(qty, unitChanged ? unit : undefined, newExpiresAt)
       onOpenChange(false)
     } catch (e) {
       console.error("Fehler beim Aktualisieren:", e)
-      alert("Fehler beim Aktualisieren. Bitte erneut versuchen.")
+      toast.error("Fehler beim Aktualisieren", { description: "Bitte erneut versuchen." })
     } finally {
       setLoading(false)
     }
@@ -146,67 +155,43 @@ export default function EditQuantityDialog({
             Aktuell: {currentQuantity} {itemUnit}
           </p>
 
-          {/* Schnellauswahl-Buttons */}
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("1")}
-              disabled={loading}
-            >
-              1
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("2")}
-              disabled={loading}
-            >
-              2
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("5")}
-              disabled={loading}
-            >
-              5
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity("10")}
-              disabled={loading}
-            >
-              10
-            </Button>
-            {unit.toLowerCase().includes("gramm") && (
-              <>
+          {/* Ablaufdatum */}
+          <div className="space-y-2">
+            <Label htmlFor="expiresAt" className="text-sm font-medium flex items-center gap-1">
+              <CalendarIcon className="w-3.5 h-3.5" />
+              Mindesthaltbar bis
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="expiresAt"
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                disabled={loading}
+                min={new Date().toISOString().split("T")[0]}
+                className="flex-1"
+              />
+              {expiresAt && (
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity("500")}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setExpiresAt("")}
                   disabled={loading}
+                  title="Ablaufdatum entfernen"
                 >
-                  500g
+                  <X className="w-4 h-4" />
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity("1000")}
-                  disabled={loading}
-                >
-                  1kg
-                </Button>
-              </>
-            )}
+              )}
+            </div>
           </div>
+
+          {/* Schnellauswahl-Buttons */}
+          <QuickSelectButtons
+            unit={unit}
+            onSelect={(qty) => setQuantity(qty.toString())}
+            disabled={loading}
+          />
         </div>
 
         <DialogFooter className="flex-row gap-2 sm:gap-0">

@@ -4,6 +4,8 @@ import * as cheerio from 'cheerio'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireAuth } from './auth'
+import { sanitizeTitle, sanitizeText, sanitizeInstructions, sanitizeUrl } from '@/lib/sanitize'
+import { checkRateLimit } from '@/lib/ratelimit'
 
 function extractInstructionText(item: unknown): string {
   if (typeof item === 'string') return item.trim()
@@ -35,6 +37,13 @@ function parseInstructions(raw: unknown): string {
 
 export async function scrapeRecipeUrl(url: string) {
   const user = await requireAuth()
+
+  // Rate Limit: max 5 Scrapes pro Stunde pro User
+  const { success: rateLimitOk } = checkRateLimit(`scrape:${user.id}`, 5, 60 * 60 * 1000)
+  if (!rateLimitOk) {
+    return { success: false, message: "Zu viele Anfragen. Bitte warte eine Stunde." }
+  }
+
   try {
     // URL validation: only allow http/https, block local addresses
     let parsedUrl: URL
@@ -96,27 +105,29 @@ export async function scrapeRecipeUrl(url: string) {
     }
 
     const rd = recipeData as Record<string, unknown>
-    const title = rd.name as string | undefined
-    const description = rd.description as string | undefined
+    const title = sanitizeTitle((rd.name as string) || "Unbekanntes Rezept")
+    const description = sanitizeText((rd.description as string) || "")
     let imageUrl: string | null = null
     const img = rd.image
     if (img) {
-      if (typeof img === 'string') imageUrl = img
-      else if (Array.isArray(img)) imageUrl = typeof img[0] === 'string' ? img[0] : (img[0] as Record<string, unknown>)?.url as string || null
-      else if (typeof img === 'object' && img !== null) imageUrl = (img as Record<string, unknown>).url as string || null
+      let rawUrl: string | null = null
+      if (typeof img === 'string') rawUrl = img
+      else if (Array.isArray(img)) rawUrl = typeof img[0] === 'string' ? img[0] : (img[0] as Record<string, unknown>)?.url as string || null
+      else if (typeof img === 'object' && img !== null) rawUrl = (img as Record<string, unknown>).url as string || null
+      imageUrl = rawUrl ? sanitizeUrl(rawUrl) : null
     }
 
-    const instructions = parseInstructions(rd.recipeInstructions)
+    const instructions = sanitizeInstructions(parseInstructions(rd.recipeInstructions))
 
     const ingredientsRaw = (rd.recipeIngredient || []) as string[]
 
     const recipe = await prisma.recipe.create({
       data: {
-        title: title || "Unbekanntes Rezept",
-        description: description || "",
+        title,
+        description,
         imageUrl,
         sourceUrl: url,
-        instructions: instructions || "",
+        instructions,
         userId: user.id
       }
     })
@@ -135,8 +146,8 @@ export async function scrapeRecipeUrl(url: string) {
          n = ing.trim()
        }
 
-       // Cut long names
-       if (n.length > 50) n = n.substring(0, 50)
+       // Sanitize & cut long names
+       n = sanitizeText(n, 50)
 
        // Upsert Item if it exists or create
        let item = await prisma.item.findUnique({ where: { name: n }})

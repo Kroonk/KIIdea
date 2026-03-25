@@ -6,6 +6,37 @@
 
 ---
 
+## ✅ Fortschritts-Checkliste
+
+### 🔴 Kritisch (Woche 1)
+- [x] **1. URL Validation & SSRF-Schutz** — bereits in v2.0 implementiert (scrape.ts:39-51)
+- [x] **2. Input Sanitization** — sanitize.ts erstellt, scrape.ts nutzt sanitizeTitle/Text/Instructions/Url
+- [x] **3. Toast-System** — sonner installiert, alle 8x alert() durch toast ersetzt
+- [x] **4. Error Handling Factory** — AppError-Klasse & handleAction Helper in errors.ts
+- [x] **5. Rate Limiting** — In-Memory Rate Limiter (5 Scrapes/h pro User)
+- [x] **6. Error Boundaries** — Next.js error.tsx Pattern (globale Fehlerseite)
+
+### 🟠 Hoch (Woche 2)
+- [x] **7. TypeScript any-Types** — ItemSearch.tsx: `any[]` → `Item[]`, `any` → `Item`
+- [x] **8. Code Deduplication** — QuickSelectButtons.tsx extrahiert, ~60 Zeilen dedupliziert
+- [x] **9. Next.js Image Optimization** — 3x `<img>` → `<Image>`, remotePatterns + AVIF/WebP
+- [x] **10. Dynamic BarcodeScanner Import** — `dynamic()` mit SSR:false, ~200KB gespart
+
+### 🟡 Mittel (Woche 3-4)
+- [x] **11. Ablaufdatum UI** — ExpiryBadge in InventoryCard, DatePicker in EditDialog
+- [x] **12. Loading States** — toast.loading() mit Fortschritts-Feedback beim Scraping
+- [ ] **13. Accessibility Audit** — ARIA-Labels, Focus-Trap, Keyboard-Nav
+- [ ] **14. Mobile UX Polish** — Scanner-Size, Dialog-Responsive
+
+### 🟢 Niedrig (Backlog)
+- [ ] **15. Unit Tests Setup** — Jest + Testing Library
+- [ ] **16. PWA Offline-Modus**
+- [ ] **17. Lighthouse Audit & Fixes**
+
+> **Letztes Update:** 25. März 2026 — 12 von 17 Punkten erledigt
+
+---
+
 ## 📊 Executive Summary
 
 Die **Foodlabs-App hat eine solide technische Grundlage**, aber es gibt Verbesserungspotenzial in folgenden Bereichen:
