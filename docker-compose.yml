@@ -6,12 +6,11 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Wir mappen den prisma-Ordner nach außen, damit die SQLite "dev.db" 
-      # beim Neustart des Containers nicht verloren geht.
+      # Persistentes Volume: Nutzerdaten (DB) überleben Container-Updates
       - ./data:/app/data
     environment:
       - NODE_ENV=production
-      - DATABASE_URL="file:/app/data/dev.db" # Verweist auf /app/prisma/dev.db
+      - DATABASE_URL=file:/app/data/dev.db
     restart: unless-stopped
     networks:
       - npm-net

@@ -17,11 +17,13 @@ node_modules/
 out
 build
 
-# Prisma
-# We want to ACTUALLY SAVE our master dev.db in food-app/prisma/
-# so that building the standalone image works! But we ignore local runtime DB and backups
+# Prisma / SQLite
+# DB-Dateien gehören NICHT in Git – git pull darf NIE Nutzerdaten überschreiben.
+# Die Master-DB wird im Docker-Build via "prisma migrate deploy" neu erzeugt.
+*.db
 *.db-journal
-data/dev.db
+*.db-wal
+*.db-shm
 
 # Environment variables
 .env*.local

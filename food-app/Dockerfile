@@ -22,6 +22,10 @@ ENV PRISMA_CLI_BINARY_TARGETS="debian-openssl-3.0.x"
 # Generiere Prisma Client mit korrekter Engine
 RUN npx prisma generate
 
+# Erstelle initiale Datenbank aus Migrationen (wird als Master-Kopie ins Image gebaut)
+# So wird KEIN dev.db in Git benötigt – git pull kann Nutzerdaten nie überschreiben
+RUN DATABASE_URL="file:/app/prisma/dev.db" npx prisma migrate deploy
+
 # Baue Next.js als Standalone
 RUN npm run build
 
