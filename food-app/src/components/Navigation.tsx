@@ -2,11 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Refrigerator, BookOpen, PlusCircle, Shield, LogOut, UserCircle } from "lucide-react"
+import { Home, Refrigerator, BookOpen, PlusCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ThemeToggle } from "./ThemeToggle"
-import { logout } from "@/app/actions/auth"
-import { Button } from "./ui/button"
+import UserMenu from "./UserMenu"
 
 const navItems = [
   { href: "/", label: "Start", icon: Home },
@@ -47,34 +45,17 @@ export default function Navigation({ username, isAdmin }: { username?: string; i
                 </Link>
               )
             })}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
-                  pathname === "/admin" ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Shield className="w-4 h-4" />
-                Admin
-              </Link>
-            )}
           </nav>
-          <div className="flex items-center gap-1 ml-4 pl-4 border-l">
-            {username && (
-              <Link href="/profile" className="text-sm text-muted-foreground mr-2 hover:text-primary transition-colors flex items-center gap-1" title="Profil">
-                <UserCircle className="w-4 h-4" />
-                {username}
-              </Link>
-            )}
-            <ThemeToggle />
-            <form action={logout}>
-              <Button variant="ghost" size="icon" type="submit" title="Abmelden">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </form>
+          <div className="ml-4 pl-4 border-l">
+            <UserMenu username={username} isAdmin={isAdmin} />
           </div>
         </div>
+      </header>
+
+      {/* Mobile Top Header */}
+      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-background border-b shadow-sm sticky top-0 z-50">
+        <span className="text-xl font-bold text-primary tracking-tight">Foodlabs</span>
+        <UserMenu username={username} isAdmin={isAdmin} />
       </header>
 
       {/* Mobile Bottom Nav */}
@@ -97,9 +78,6 @@ export default function Navigation({ username, isAdmin }: { username?: string; i
               </Link>
             )
           })}
-          <div className="flex flex-col items-center justify-center h-full gap-1">
-            <ThemeToggle />
-          </div>
         </div>
       </nav>
     </>
