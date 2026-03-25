@@ -6,6 +6,53 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [2.1.0] - 2026-03-25
+
+### Added
+- **Passwort ändern** - Neue Profilseite `/profile` mit Passwort-Ändern-Formular
+- **Admin-Seed** - `MrDiderot` Admin-Account wird automatisch beim ersten Container-Start angelegt (`seed-admin.js` via `start.sh`)
+- **Sicherheits-Features** - Rate Limiting (`ratelimit.ts`), Input-Sanitization (`sanitize.ts`), Error Boundaries (`error.tsx`)
+- **Security Headers** - Content Security Policy, X-Frame-Options etc. in `next.config.ts`
+- **QuickSelectButtons** - Ausgelagerte Schnellauswahl-Komponente für Mengen-Dialoge
+- **Profil-Link** - Klickbarer Benutzername in der Desktop-Navigation verlinkt auf `/profile`
+
+### Changed
+- Navigation: Username ist nun klickbares Link-Element mit UserCircle-Icon → `/profile`
+- `start.sh`: Führt `seed-admin.js` bei Erststart aus (leere DB)
+- Dockerfile: Kopiert `seed-admin.js` + `bcryptjs` in den Runner-Stage
+- `AddQuantityDialog` & `EditQuantityDialog` refactored und vereinfacht
+- `InventoryCard` erweitert mit verbesserter UI
+- `scrape.ts` gehärtet mit SSRF-Schutz und robusterer Instruction-Extraktion
+
+### Technical
+- Docker Build MUSS `--platform linux/amd64` nutzen (NAS ist x86, Mac ist ARM)
+- Neue Dateien: `src/app/profile/page.tsx`, `src/app/profile/ChangePasswordForm.tsx`, `src/lib/ratelimit.ts`, `src/lib/sanitize.ts`, `src/lib/errors.ts`, `src/app/error.tsx`, `seed-admin.js`
+
+---
+
+## [2.0.0] - 2026-03-25
+
+### Added
+- **Benutzeraccounts & Login** (bcryptjs + Cookie-Sessions, 30 Tage)
+- **Multi-Tenant** - userId auf Inventory & Recipe (logische Datentrennung pro User)
+- **Admin-Rolle** - Nutzerverwaltung unter `/admin` (Rollen ändern, User löschen)
+- **Route-Schutz** - `src/proxy.ts` (Next.js 16 Proxy-Pattern, ersetzt deprecated Middleware)
+- **Erster User = Admin** - Automatische Admin-Zuweisung beim ersten Register
+- **Responsives Mobile-Design** - Padding, Font-Sizes, ThemeToggle angepasst
+- **Dark-Mode Badge-Farben** auf Dashboard
+
+### Changed
+- Backup/Restore nur noch für Admins zugänglich
+- Scraping: Robuste Instruction-Extraktion (HowToSection, verschachtelte HowToStep)
+- URL-Validation & SSRF-Schutz im Scraper
+- TypeScript: `any` Types reduziert
+
+### Fixed
+- "Jetzt Kochen" Button auf Rezept-Detailseite wieder funktional
+- Rezept-Import über URL funktioniert wieder korrekt
+
+---
+
 ## [1.4.0] - 2026-03-24
 
 ### Added

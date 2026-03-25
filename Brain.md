@@ -2,17 +2,68 @@
 
 > **⚠️ META-REGELN FÜR CLAUDE:**
 > 1. Diese Datei ist das **Projekt-Gedächtnis**. Nach **jeder Code-Änderung** MUSS die Brain.md aktualisiert werden.
-> 2. **AUTO-OPTIMIERUNG TRIGGER:** Wenn der User "Optimiere mein System", "Optimierung" oder ähnliche Befehle gibt:
->    - Rufe die ältesten 3 offenen GitHub Issues ab: `curl -s "https://api.github.com/repos/Kroonk/KIIdea/issues?state=open&sort=created&direction=asc&per_page=3"`
->    - Arbeite diese Issues nacheinander ab (implementieren, testen, committen)
->    - Schließe jedes Issue nach Fertigstellung mit: `curl -X PATCH -H "Accept: application/vnd.github+json" https://api.github.com/repos/Kroonk/KIIdea/issues/{issue_number} -d '{"state":"closed"}'`
->    - Aktualisiere die Brain.md mit den neuen Features
->    - **DEPLOYMENT:** Nach Abschluss IMMER ausführen:
->      1. `git push` - Änderungen auf GitHub pushen
->      2. Docker Build & Push: `cd food-app && docker build -t ghcr.io/kroonk/kiidea:latest . && docker push ghcr.io/kroonk/kiidea:latest`
->      3. User kann dann direkt auf NAS deployen mit: `docker compose pull && docker compose up -d`
-> 3. Behandle diese Datei wie dein Langzeitgedächtnis. Nutze sie proaktiv!
-> 4. **Dokumentations-Struktur:** Detaillierte Infos sind ausgelagert - verweise immer auf die entsprechenden Dateien!
+> 2. Behandle diese Datei wie dein Langzeitgedächtnis. Nutze sie proaktiv!
+> 3. **Dokumentations-Struktur:** Detaillierte Infos sind ausgelagert - verweise immer auf die entsprechenden Dateien!
+> 4. **Docs auto-pflegen:** Siehe Tabelle "Automatische Dokumentations-Pflege" weiter unten — bei jeder Aufgabe die passenden Dateien mitaktualisieren.
+
+---
+
+## 🎮 Standardisierte Befehle
+
+Kurzbefehle für wiederkehrende Aufgaben — Claude führt sie vollständig aus ohne weitere Rückfragen.
+
+| Befehl | Wann benutzen | Was passiert |
+|--------|--------------|--------------|
+| `/deploy` | Nach Änderungen die live gehen sollen | Commit → Push → Docker build (linux/amd64) → GHCR push → NAS-ready |
+| `/release vX.Y.Z` | Wenn eine neue Version veröffentlicht wird | Alle Docs aktualisieren → CHANGELOG-Eintrag → `/deploy` |
+| `/optimize` | Offene GitHub-Issues abarbeiten | Älteste 3 Issues holen → implementieren → committen → Issues schließen → `/deploy` |
+| `/status` | Schneller Überblick | `git status` + offene GitHub Issues + aktuelle Version |
+
+### Befehl-Implementierungen
+
+**`/deploy`**
+```bash
+git add -A
+git commit -m "feat/fix/chore: ..."
+git push
+cd food-app && docker buildx build --platform linux/amd64 -t ghcr.io/kroonk/kiidea:latest --push .
+# → Auf NAS: docker compose pull && docker compose up -d
+```
+> ⚠️ Docker Build IMMER mit `--platform linux/amd64` — NAS ist x86, Mac ist ARM!
+
+**`/release vX.Y.Z`**
+1. Brain.md: Version + Changelog (Kurz) + ggf. Features/Struktur aktualisieren
+2. CHANGELOG.md: Neuen Versions-Eintrag nach Keep-a-Changelog-Format einfügen
+3. FEATURES.md: Neue/geänderte Features ergänzen (technische Details)
+4. DEPLOYMENT.md: Nur wenn sich der Deploy-Prozess geändert hat
+5. TROUBLESHOOTING.md: Neue bekannte Probleme/Lösungen ergänzen
+6. Dann `/deploy` ausführen
+
+**`/optimize`**
+```bash
+# Issues holen:
+curl -s "https://api.github.com/repos/Kroonk/KIIdea/issues?state=open&sort=created&direction=asc&per_page=3"
+# Pro Issue: implementieren → committen → Issue schließen:
+curl -X PATCH -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/Kroonk/KIIdea/issues/{NR} -d '{"state":"closed"}'
+# Danach /deploy
+```
+
+---
+
+## 📄 Automatische Dokumentations-Pflege
+
+| Datei | Wann aktualisieren | Was rein |
+|-------|--------------------|----------|
+| **Brain.md** | Nach JEDER Code-Änderung | Version, neue Features (Kurz), Changelog (Kurz), Projektstruktur bei neuen Dateien |
+| **CHANGELOG.md** | Bei jedem `/release` | Neuer Abschnitt `## [vX.Y.Z] - DATUM` mit Added/Changed/Fixed/Removed |
+| **FEATURES.md** | Wenn Feature neu oder wesentlich geändert | Technische Implementierungsdetails mit Code-Snippets, Flows, Edge Cases |
+| **DEPLOYMENT.md** | Wenn Build/Deploy-Prozess sich ändert | Aktualisierte Befehle, neue Env-Vars, geänderte docker-compose-Config |
+| **TROUBLESHOOTING.md** | Wenn neues Problem/Lösung entdeckt | Neuer Abschnitt: Fehlerbild → Ursache → Lösung |
+| **README.md** | Bei Major-Releases oder Setup-Änderungen | User-facing Doku, Setup-Schritte, Feature-Übersicht für Endnutzer |
+
+**Nicht pflegen (kein Mehrwert):**
+- `OPTIMIZATION.md` — einmaliger Plan, veraltet schnell → ignorieren
 
 ---
 
