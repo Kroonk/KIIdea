@@ -13,8 +13,8 @@ export default async function RecipesPage() {
     <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
-            <BookOpen className="w-8 h-8" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
+            <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
             Meine Rezepte
           </h1>
           <p className="text-muted-foreground mt-1">

@@ -3,41 +3,90 @@
 import * as cheerio from 'cheerio'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAuth } from './auth'
+
+function extractInstructionText(item: unknown): string {
+  if (typeof item === 'string') return item.trim()
+  if (!item || typeof item !== 'object') return ''
+  const obj = item as Record<string, unknown>
+
+  // HowToSection: contains itemListElement with nested HowToSteps
+  if (obj['@type'] === 'HowToSection' && Array.isArray(obj['itemListElement'])) {
+    const sectionName = typeof obj['name'] === 'string' ? `**${obj['name']}**\n` : ''
+    const steps = obj['itemListElement'].map((step: unknown) => extractInstructionText(step)).filter(Boolean)
+    return sectionName + steps.join('\n\n')
+  }
+
+  // HowToStep
+  if (obj['text'] && typeof obj['text'] === 'string') return obj['text'].trim()
+  if (obj['name'] && typeof obj['name'] === 'string') return obj['name'].trim()
+  if (obj['description'] && typeof obj['description'] === 'string') return obj['description'].trim()
+
+  return ''
+}
+
+function parseInstructions(raw: unknown): string {
+  if (typeof raw === 'string') return raw.trim()
+  if (Array.isArray(raw)) {
+    return raw.map((item) => extractInstructionText(item)).filter(Boolean).join('\n\n')
+  }
+  return ''
+}
 
 export async function scrapeRecipeUrl(url: string) {
+  const user = await requireAuth()
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }})
+    // URL validation: only allow http/https, block local addresses
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(url)
+    } catch {
+      return { success: false, message: "Ungültige URL." }
+    }
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return { success: false, message: "Nur HTTP/HTTPS URLs erlaubt." }
+    }
+    if (['localhost', '127.0.0.1', '0.0.0.0'].includes(parsedUrl.hostname) || parsedUrl.hostname.startsWith('192.168.') || parsedUrl.hostname.startsWith('10.')) {
+      return { success: false, message: "Lokale URLs sind nicht erlaubt." }
+    }
+
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Foodlabs/1.0)' },
+      signal: AbortSignal.timeout(15000),
+    })
     if (!res.ok) throw new Error("Konnte die URL nicht abrufen.")
-    
+
     const html = await res.text()
     const $ = cheerio.load(html)
-    
-    let recipeData: any = null
-    $('script[type="application/ld+json"]').each((_, el) => {
+
+    let recipeData: Record<string, unknown> | null = null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    $('script[type="application/ld+json"]').each((_: number, el: any) => {
       try {
         const json = JSON.parse($(el).html() || '{}')
-        const findRecipe = (obj: any): any => {
+        const findRecipe = (obj: unknown): Record<string, unknown> | null => {
           if (Array.isArray(obj)) {
             for (const item of obj) {
               const r = findRecipe(item)
               if (r) return r
             }
           } else if (obj && typeof obj === 'object') {
-            if (obj['@type'] === 'Recipe' || (Array.isArray(obj['@type']) && obj['@type'].includes('Recipe'))) {
-              return obj
+            const o = obj as Record<string, unknown>
+            if (o['@type'] === 'Recipe' || (Array.isArray(o['@type']) && (o['@type'] as string[]).includes('Recipe'))) {
+              return o
             }
-            if (obj['@graph']) {
-              return findRecipe(obj['@graph'])
+            if (o['@graph']) {
+              return findRecipe(o['@graph'])
             }
           }
           return null
         }
-        
+
         const found = findRecipe(json)
         if (found) {
           recipeData = found
         }
-      } catch (e) {
+      } catch {
         // ignore JSON parse errors
       }
     })
@@ -46,20 +95,20 @@ export async function scrapeRecipeUrl(url: string) {
       return { success: false, message: "Keine gültigen Rezeptdaten (Schema.org) auf der Seite gefunden." }
     }
 
-    const title = recipeData.name
-    const description = recipeData.description
-    let imageUrl = null
-    if (recipeData.image) {
-      if (typeof recipeData.image === 'string') imageUrl = recipeData.image
-      else if (Array.isArray(recipeData.image)) imageUrl = recipeData.image[0]
-      else if (recipeData.image.url) imageUrl = recipeData.image.url
+    const rd = recipeData as Record<string, unknown>
+    const title = rd.name as string | undefined
+    const description = rd.description as string | undefined
+    let imageUrl: string | null = null
+    const img = rd.image
+    if (img) {
+      if (typeof img === 'string') imageUrl = img
+      else if (Array.isArray(img)) imageUrl = typeof img[0] === 'string' ? img[0] : (img[0] as Record<string, unknown>)?.url as string || null
+      else if (typeof img === 'object' && img !== null) imageUrl = (img as Record<string, unknown>).url as string || null
     }
 
-    const instructions = Array.isArray(recipeData.recipeInstructions) 
-      ? recipeData.recipeInstructions.map((i: any) => i.text || i).join('\n\n')
-      : recipeData.recipeInstructions
+    const instructions = parseInstructions(rd.recipeInstructions)
 
-    const ingredientsRaw = recipeData.recipeIngredient || []
+    const ingredientsRaw = (rd.recipeIngredient || []) as string[]
 
     const recipe = await prisma.recipe.create({
       data: {
@@ -67,7 +116,8 @@ export async function scrapeRecipeUrl(url: string) {
         description: description || "",
         imageUrl,
         sourceUrl: url,
-        instructions: instructions || ""
+        instructions: instructions || "",
+        userId: user.id
       }
     })
 
@@ -104,7 +154,7 @@ export async function scrapeRecipeUrl(url: string) {
              unit: u
            }
          })
-       } catch (err: any) {
+       } catch {
          // Silently ignore if unique constraint fails (e.g. duplicate ingredient in recipe)
        }
     }
@@ -112,8 +162,8 @@ export async function scrapeRecipeUrl(url: string) {
     revalidatePath('/recipes')
     return { success: true, recipeId: recipe.id }
 
-  } catch (e: any) {
+  } catch (e) {
     console.error("Scraping Error:", e)
-    return { success: false, message: e.message }
+    return { success: false, message: e instanceof Error ? e.message : "Unbekannter Fehler beim Scraping." }
   }
 }

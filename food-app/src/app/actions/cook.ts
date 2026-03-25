@@ -2,13 +2,16 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAuth } from './auth'
 
 export async function deductIngredients(items: { itemId: string, quantity: number }[]) {
+  const user = await requireAuth()
+
   for (const requested of items) {
     const inv = await prisma.inventory.findFirst({
-      where: { itemId: requested.itemId }
+      where: { itemId: requested.itemId, userId: user.id }
     })
-    
+
     if (inv) {
       if (inv.quantity > requested.quantity) {
         // Subtract
@@ -24,7 +27,7 @@ export async function deductIngredients(items: { itemId: string, quantity: numbe
       }
     }
   }
-  
+
   revalidatePath('/')
   revalidatePath('/inventory')
 }

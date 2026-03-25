@@ -12,13 +12,13 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto pb-12">
-      <div className="text-center md:text-left md:flex justify-between items-end mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-primary">Foodlabs</h1>
-          <p className="text-muted-foreground mt-2 text-lg">Was kochen wir heute?</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-primary">Foodlabs</h1>
+          <p className="text-muted-foreground mt-2 text-base sm:text-lg">Was kochen wir heute?</p>
         </div>
-        <Link href="/add" className="hidden md:block">
-          <Button variant="outline">Vorrat auffüllen</Button>
+        <Link href="/add">
+          <Button variant="outline" size="sm" className="sm:size-default">Vorrat auffüllen</Button>
         </Link>
       </div>
 
@@ -56,7 +56,7 @@ export default async function Home() {
                       {m.recipe.title}
                     </Link>
                   </CardTitle>
-                  <div className={`px-2 py-1 rounded-full text-xs font-bold shrink-0 ${m.matchPercentage === 100 ? 'bg-green-100 text-green-800' : m.matchPercentage > 50 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                  <div className={`px-2 py-1 rounded-full text-xs font-bold shrink-0 ${m.matchPercentage === 100 ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : m.matchPercentage > 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}`}>
                     {m.matchPercentage}%
                   </div>
                 </div>
@@ -77,7 +77,7 @@ export default async function Home() {
                     </ul>
                   </div>
                 ) : (
-                  <div className="text-sm text-green-600 flex items-center gap-1 font-medium bg-green-50 w-fit px-2 py-1 rounded-md">
+                  <div className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1 font-medium bg-green-50 dark:bg-green-950/30 w-fit px-2 py-1 rounded-md">
                     <CheckCircle2 className="w-4 h-4" /> Alles im Haus!
                   </div>
                 )}

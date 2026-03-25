@@ -2,10 +2,13 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAuth } from './auth'
 
 export async function getInventory() {
+  const user = await requireAuth()
   try {
     return await prisma.inventory.findMany({
+      where: { userId: user.id },
       include: {
         item: true
       },
@@ -30,8 +33,9 @@ export async function searchItems(query: string) {
 }
 
 export async function addToInventory(itemId: string, quantity: number) {
+  const user = await requireAuth()
   const existing = await prisma.inventory.findFirst({
-    where: { itemId }
+    where: { itemId, userId: user.id }
   })
 
   if (existing) {
@@ -41,26 +45,27 @@ export async function addToInventory(itemId: string, quantity: number) {
     })
   } else {
     await prisma.inventory.create({
-      data: { itemId, quantity }
+      data: { itemId, quantity, userId: user.id }
     })
   }
   revalidatePath('/inventory')
 }
 
 export async function updateInventory(id: string, quantity: number, unit?: string) {
-  // Wenn eine Einheit übergeben wird, aktualisiere auch das Item
-  if (unit) {
-    const inv = await prisma.inventory.findUnique({
-      where: { id },
-      select: { itemId: true }
-    })
+  const user = await requireAuth()
 
-    if (inv) {
-      await prisma.item.update({
-        where: { id: inv.itemId },
-        data: { unit }
-      })
-    }
+  // Verify ownership
+  const inv = await prisma.inventory.findFirst({
+    where: { id, userId: user.id },
+    select: { itemId: true }
+  })
+  if (!inv) return
+
+  if (unit) {
+    await prisma.item.update({
+      where: { id: inv.itemId },
+      data: { unit }
+    })
   }
 
   await prisma.inventory.update({
@@ -72,16 +77,21 @@ export async function updateInventory(id: string, quantity: number, unit?: strin
 }
 
 export async function removeFromInventory(id: string, quantityToRemove?: number) {
-  if (quantityToRemove) {
-    const inv = await prisma.inventory.findUnique({ where: { id } })
-    if (inv && inv.quantity > quantityToRemove) {
-      await prisma.inventory.update({
-        where: { id },
-        data: { quantity: inv.quantity - quantityToRemove }
-      })
-      revalidatePath('/inventory')
-      return;
-    }
+  const user = await requireAuth()
+
+  // Verify ownership
+  const inv = await prisma.inventory.findFirst({
+    where: { id, userId: user.id }
+  })
+  if (!inv) return
+
+  if (quantityToRemove && inv.quantity > quantityToRemove) {
+    await prisma.inventory.update({
+      where: { id },
+      data: { quantity: inv.quantity - quantityToRemove }
+    })
+    revalidatePath('/inventory')
+    return
   }
 
   await prisma.inventory.delete({ where: { id } })

@@ -12,22 +12,22 @@ export default async function InventoryPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto pb-12">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
-            <Refrigerator className="w-8 h-8" />
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
+            <Refrigerator className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
             Mein Vorrat
           </h1>
-          <p className="text-muted-foreground mt-1">Hier siehst du, was aktuell im Kühlschrank oder der Vorratskammer ist.</p>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Hier siehst du, was aktuell im Kühlschrank oder der Vorratskammer ist.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Link href="/backup">
             <Button variant="outline" size="icon" className="shrink-0" title="Backup & Restore">
               <Database className="w-4 h-4" />
             </Button>
           </Link>
           <Link href="/add">
-            <Button className="shrink-0">
+            <Button className="shrink-0" size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Hinzufügen
             </Button>

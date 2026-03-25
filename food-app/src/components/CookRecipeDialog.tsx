@@ -15,7 +15,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { deductIngredients } from "@/app/actions/cook"
 import { Loader2, Utensils } from "lucide-react"
 
-export default function CookRecipeDialog({ recipe, availableIngredients }: { recipe: any, availableIngredients: any[] }) {
+interface CookRecipeDialogProps {
+  recipe: { id: string; title: string }
+  availableIngredients: Array<{ id: string; itemId: string; quantity: number; unit?: string | null; item: { name: string; unit: string } }>
+  buttonClassName?: string
+  buttonLabel?: string
+}
+
+export default function CookRecipeDialog({ recipe, availableIngredients, buttonClassName, buttonLabel }: CookRecipeDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   
@@ -47,9 +54,9 @@ export default function CookRecipeDialog({ recipe, availableIngredients }: { rec
 
   return (
     <>
-      <Button className="w-full font-bold" onClick={() => setOpen(true)}>
+      <Button className={buttonClassName || "w-full font-bold"} onClick={() => setOpen(true)}>
         <Utensils className="w-4 h-4 mr-2" />
-        Kochen
+        {buttonLabel || "Kochen"}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

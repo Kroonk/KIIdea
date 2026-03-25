@@ -34,18 +34,20 @@
 
 Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effizienten Verwaltung von Lebensmitteln mit smarten Rezeptvorschlägen basierend auf Kühlschrank-Inhalt.
 
-**Status:** v1.4.1 Produktiv (März 2026)
+**Status:** v2.0 Produktiv (März 2026)
 **Repository:** https://github.com/Kroonk/KIIdea
 **Docker Image:** `ghcr.io/kroonk/kiidea:latest`
 
 ### Haupt-Features
 - ✅ Inventar-Verwaltung (Manuell + Barcode-Scanner)
 - ✅ Smart Recipe Matching (Basierend auf Vorrat)
-- ✅ URL-Scraping (Schema.org)
-- ✅ Koch-Workflow mit Bestandsabzug
+- ✅ URL-Scraping (Schema.org) mit robuster Instruction-Extraktion
+- ✅ Koch-Workflow mit Bestandsabzug (funktioniert auf Rezept-Detailseite)
 - ✅ Dark Mode (Light/Dark/System)
-- ✅ Backup & Restore (JSON Export/Import)
+- ✅ Backup & Restore (JSON Export/Import, Admin-only)
 - ✅ Einheiten-Editor (10 Einheiten)
+- ✅ **Benutzeraccounts & Login** (Multi-Tenant, Admin/User Rollen)
+- ✅ **Responsives Mobile-Design** (Bottom-Nav, Safe-Area, Padding)
 
 **Siehe:** [FEATURES.md](FEATURES.md) für detaillierte Implementierung
 
@@ -59,6 +61,7 @@ Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effiz
 - **Language:** TypeScript 5.x
 - **Styling:** Tailwind CSS 4 + Shadcn UI (Warm Food Theme + Dark Mode)
 - **Datenbank:** Prisma ORM 5.22.0 + SQLite (`dev.db`)
+- **Auth:** bcryptjs (Password Hashing) + Cookie-basierte Sessions
 - **UI:** Shadcn UI, Lucide Icons, Geist Fonts
 - **Theme:** next-themes (Light/Dark/System)
 - **Special:** html5-qrcode, cheerio, cmdk
@@ -67,30 +70,39 @@ Foodlabs (ehemals KIIdea) ist eine selbst gehostete "Mobile-First" PWA zur effiz
 - **SQLite:** Single-File DB, perfekt für NAS, keine externen Services
 - **Node 20 Bookworm:** Debian-basiert mit OpenSSL 3.x Support
 - **Server Actions:** Alle DB-Operationen als Server Actions (kein API-Layer)
+- **Multi-Tenant:** userId auf Inventory & Recipe (logische Datentrennung)
+- **Proxy (Next.js 16):** Route-Schutz über `proxy.ts` (ersetzt deprecated `middleware.ts`)
 - **Base UI:** @base-ui/react für primitive UI-Komponenten
 
 ---
 
 ## Datenbank-Schema
 
-**4 Haupt-Modelle:**
+**6 Modelle:**
 
 ```prisma
+User              // Benutzer (username, password, role: admin|user)
+  ↓
+Session           // Auth-Session (token, expiresAt, userId)
+
 Item              // Lebensmittel (name, barcode, unit, category)
   ↓
-Inventory         // Vorrat (quantity, expiresAt, itemId)
+Inventory         // Vorrat (quantity, expiresAt, itemId, userId)
 
-Recipe            // Rezepte (title, description, imageUrl, instructions)
+Recipe            // Rezepte (title, description, imageUrl, instructions, userId)
   ↓
 RecipeIngredient  // Zutaten-Relation (quantity, unit, recipeId, itemId)
 ```
 
 **Vollständiges Schema:** `food-app/prisma/schema.prisma`
 
-**Wichtige Indizes:**
+**Wichtige Details:**
 - `Item.name` - Unique (für searchItems)
 - `Item.barcode` - Unique (für Barcode-Scan)
 - `RecipeIngredient` - Unique Constraint auf (recipeId, itemId)
+- `User.username` - Unique
+- `Session.token` - Unique
+- `Inventory.userId` und `Recipe.userId` - Optional (für Migration bestehender Daten)
 
 ---
 
@@ -117,11 +129,45 @@ if (process.env.NODE_ENV !== 'production')
 
 **WICHTIG:** Alle Server Actions MÜSSEN `import { prisma } from '@/lib/prisma'` verwenden!
 
-**Warum?** Next.js Dev-Mode Hot-Reloads würden sonst mehrere Prisma-Instanzen erstellen → Memory Leak
+---
+
+### 2. Auth-System (v2.0)
+
+**Pattern:**
+```typescript
+// Jede geschützte Server Action:
+import { requireAuth } from './auth'
+
+export async function myAction() {
+  const user = await requireAuth() // Redirect zu /login wenn nicht eingeloggt
+  // user.id für Multi-Tenant Queries verwenden
+  const data = await prisma.inventory.findMany({
+    where: { userId: user.id }
+  })
+}
+
+// Admin-only Actions:
+import { requireAdmin } from './auth'
+export async function adminAction() {
+  await requireAdmin() // Redirect wenn nicht Admin
+}
+```
+
+**Session-Management:**
+- Cookie-basiert (`httpOnly`, `secure`, `sameSite: lax`)
+- 30 Tage Gültigkeit
+- Token: 64-Char Random String
+- Expired Sessions werden beim Login aufgeräumt
+
+**Erster User = Admin:** Bei der Registration wird geprüft ob schon User existieren. Der erste wird automatisch Admin.
+
+**Route-Schutz:** `src/proxy.ts` (Next.js 16 Proxy-Pattern)
+- Öffentlich: `/login`, `/register`
+- Geschützt: Alle anderen Routes
 
 ---
 
-### 2. Docker Volume-Strategie
+### 3. Docker Volume-Strategie
 
 **Problem:** Leere Volumes überschreiben Container-Dateien beim ersten Start.
 
@@ -146,16 +192,11 @@ exec node server.js
 
 ---
 
-### 3. Next.js 16 Dynamic Routes (Params Promise) ⚠️ KRITISCH
+### 4. Next.js 16 Dynamic Routes (Params Promise) ⚠️ KRITISCH
 
 **Next.js 15+ Breaking Change:** `params` sind jetzt Promises!
 
 ```typescript
-// ❌ FALSCH (Next.js 14)
-export default async function Page({ params }: { params: { id: string } }) {
-  const data = await getData(params.id)
-}
-
 // ✅ RICHTIG (Next.js 15+)
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -163,11 +204,38 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 }
 ```
 
-**WICHTIG:** Alle dynamischen Routes `[id]`, `[slug]` etc. müssen `params` als Promise behandeln!
+---
+
+### 5. Next.js 16 Proxy (statt Middleware) ⚠️ NEU
+
+**File:** `src/proxy.ts` (NICHT `middleware.ts`!)
+
+```typescript
+export function proxy(request: NextRequest) {
+  // Route protection logic
+}
+export const config = { matcher: [...] }
+```
 
 ---
 
-### 4. Server Actions Konvention
+### 6. Scrape-System (verbessert v2.0)
+
+**Features:**
+- URL-Validation (SSRF-Schutz: blockiert localhost, private IPs)
+- 15s Timeout für Fetch
+- Robuste Instruction-Extraktion: HowToStep, HowToSection, verschachtelte Strukturen
+- Automatisches userId-Binding
+
+**Unterstützte Schema.org Formate:**
+- `recipeInstructions` als String
+- Array von Strings
+- Array von `HowToStep` (text/name/description)
+- Array von `HowToSection` mit verschachtelten `HowToStep`
+
+---
+
+### 7. Server Actions Konvention
 
 **Pattern:**
 ```typescript
@@ -175,36 +243,21 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAuth } from './auth'
 
 export async function createItem(data) {
+  const user = await requireAuth()
   const item = await prisma.item.create({ data })
-  revalidatePath('/inventory')  // Cache invalidieren!
+  revalidatePath('/inventory')
   return item
 }
 ```
 
 **WICHTIG:**
 - Immer `"use server"` am Dateianfang
+- Immer `requireAuth()` für geschützte Aktionen
 - Immer `revalidatePath()` nach Mutation
-- Fehlerbehandlung mit try/catch
-
----
-
-### 5. OpenFoodFacts Integration
-
-**API:** `https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
-
-**Smart Caching:**
-1. Lokale DB checken (Barcode-Index)
-2. Falls nicht gefunden: API-Call
-3. Produkt dauerhaft lokal speichern
-
-**Features:**
-- Auto-Unit-Detection (kg→g, l→ml)
-- Package Size Suggestion
-- Category Extraction
-
-**Siehe:** [FEATURES.md - Barcode-Scanner](FEATURES.md#12-barcode-scanner-mit-openfoodfacts)
+- userId in where-Clauses für Multi-Tenant
 
 ---
 
@@ -222,34 +275,37 @@ KIIdea/
 ├── data/                         # Volume für Runtime-DB
 └── food-app/
     ├── src/
+    │   ├── proxy.ts              # Route-Schutz (Next.js 16 Proxy)
     │   ├── app/
     │   │   ├── actions/          # Server Actions (Prisma)
+    │   │   │   ├── auth.ts       # Auth: Login/Register/Logout/User-CRUD
     │   │   │   ├── inventory.ts  # Inventar + Barcode + Einheit-Update
-    │   │   │   ├── backup.ts     # Import/Export (v1.4)
-    │   │   │   ├── match.ts      # Match-Algorithmus
+    │   │   │   ├── backup.ts     # Import/Export (Admin-only)
+    │   │   │   ├── match.ts      # Match-Algorithmus + getRecipeMatchInfo
     │   │   │   ├── cook.ts       # Koch-Workflow
-    │   │   │   ├── scrape.ts     # URL-Scraping
+    │   │   │   ├── scrape.ts     # URL-Scraping (verbessert)
     │   │   │   └── recipes.ts    # Rezept-CRUD
     │   │   ├── page.tsx          # Dashboard
+    │   │   ├── login/page.tsx    # Login-Seite
+    │   │   ├── register/page.tsx # Registrierung
+    │   │   ├── admin/            # Admin: Nutzerverwaltung
+    │   │   │   ├── page.tsx
+    │   │   │   └── UserManagement.tsx
     │   │   ├── inventory/page.tsx
-    │   │   ├── backup/page.tsx   # Backup & Restore (v1.4)
+    │   │   ├── backup/page.tsx   # Backup & Restore
     │   │   └── recipes/
     │   ├── components/
-    │   │   ├── AddQuantityDialog.tsx (v1.2)
-    │   │   ├── EditQuantityDialog.tsx (v1.3, v1.4: Einheiten-Editor)
-    │   │   ├── InventoryCard.tsx (v1.3)
-    │   │   ├── ThemeToggle.tsx (v1.3)
-    │   │   ├── theme-provider.tsx (v1.3)
+    │   │   ├── Navigation.tsx    # Desktop + Mobile Nav (Auth-aware)
+    │   │   ├── ThemeToggle.tsx
+    │   │   ├── CookRecipeDialog.tsx (mit Props: buttonClassName, buttonLabel)
+    │   │   ├── InventoryCard.tsx
     │   │   ├── ItemSearch.tsx
     │   │   ├── BarcodeScanner.tsx
-    │   │   ├── CookRecipeDialog.tsx
     │   │   └── ui/               # Shadcn/Custom Components
-    │   │       ├── alert.tsx (v1.4)
-    │   │       └── radio-group.tsx (v1.4)
     │   └── lib/
     │       └── prisma.ts         # ⚠️ SINGLETON
     ├── prisma/
-    │   ├── schema.prisma
+    │   ├── schema.prisma         # 6 Models (User, Session, Item, Inventory, Recipe, RecipeIngredient)
     │   ├── dev.db                # Master-DB (im Image)
     │   └── seed.ts
     ├── Dockerfile
@@ -259,17 +315,16 @@ KIIdea/
 
 ---
 
-## Bekannte Limitierungen (v1.4)
+## Bekannte Limitierungen (v2.0)
 
 - ❌ Ablaufdatum-Tracking (Feld existiert, UI fehlt)
 - ❌ Einkaufslisten
-- ❌ Multi-User Support
 - ❌ PWA Offline-Modus
-- ❌ Toast-Benachrichtigungen (aktuell nur console.log/alerts)
+- ❌ Toast-Benachrichtigungen (aktuell nur alert())
 - ❌ Nicht alle Websites unterstützen Schema.org
 - ❌ Barcode-Scanner benötigt HTTPS/Localhost (Kamera-Zugriff)
 
-**Geplant für:** v2.0 (siehe [CHANGELOG.md](CHANGELOG.md))
+**Geplant für:** v2.1+ (siehe [CHANGELOG.md](CHANGELOG.md))
 
 ---
 
@@ -305,189 +360,29 @@ docker compose up -d
 
 ---
 
-## 🎯 Optimierungsplan (Code-Analyse 24.03.2026)
-
-> **Analyse-Ergebnis:** ~2000 Lines Code, 38 TypeScript-Dateien analysiert
-> **Gesamtbewertung:** Solide Grundlage, aber Verbesserungsbedarf in Security, Error Handling & TypeScript
-
-### 🔴 KRITISCH (Sofort beheben)
-
-| # | Verbesserung | Datei(en) | Aufwand | Impact |
-|---|---|---|---|---|
-| 1 | **URL Validation in scrapeRecipeUrl()** | `actions/scrape.ts` | 30min | Security Critical |
-| 2 | **Toast-Benachrichtigungen** (Sonner) | All Components | 2-3h | UX Critical |
-| 3 | **Input Sanitization** (DOMPurify) | `scrape.ts`, `backup.ts` | 1h | Security High |
-| 4 | **Error Handling vereinheitlichen** | 8 Files (alert → toast) | 1-2h | Stability High |
-| 5 | **Rate Limiting für API Calls** | `scrape.ts`, `inventory.ts` | 2h | Security High |
-
-**Security-Risiken:**
-- ❌ `scrapeRecipeUrl()` akzeptiert ANY URL (SSRF-Risiko, file://, localhost)
-- ❌ Keine Timeout für Fetch-Requests
-- ❌ Scraped Content wird ungefiltert gespeichert (XSS-Risiko)
-- ❌ Keine Rate-Limiting (100x Scraping möglich)
-
-**Code-Beispiel URL Validation:**
-```typescript
-// src/lib/validation.ts (NEU)
-export function validateRecipeUrl(urlString: string): string {
-  const url = new URL(urlString)
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error('Nur HTTP/HTTPS erlaubt')
-  }
-  if (['localhost', '127.0.0.1', '192.168'].some(p => url.hostname.includes(p))) {
-    throw new Error('Lokale URLs blockiert')
-  }
-  return url.toString()
-}
-```
-
----
-
-### 🟠 HOCH (Diese Woche)
-
-| # | Verbesserung | Datei(en) | Aufwand | Impact |
-|---|---|---|---|---|
-| 6 | **TypeScript Types** (any → Interfaces) | `match.ts`, `CookRecipeDialog.tsx` | 2-3h | Quality High |
-| 7 | **Database Query Optimization** | `match.ts:12-72` (N+1 Problem) | 2h | Performance High |
-| 8 | **Next.js Image Optimization** | `page.tsx`, `recipes/**` | 2h | Performance Medium |
-| 9 | **Ablaufdatum UI** | `EditQuantityDialog.tsx` | 2-3h | Feature Medium |
-| 10 | **Code Deduplication** | QuickSelectButtons → Shared Component | 45min | Quality Medium |
-
-**TypeScript-Probleme:**
-- 7x `any`-Types in `match.ts`, `scrape.ts`, `ItemSearch.tsx`, `CookRecipeDialog.tsx`
-- Keine Type-Safety für Recipe Matching Algorithmus
-- `MatchedRecipeInfo` verwendet `any` für recipe/ingredients
-
-**Performance-Probleme:**
-- `getMatchedRecipes()`: 2 Queries + O(n*m) Loop (nicht skalierbar)
-- 6x `<img>` statt Next.js `<Image>` (keine Lazy Loading, WebP)
-- `html5-qrcode` (~200KB) nicht dynamisch geladen
-
----
-
-### 🟡 MITTEL (Nächste 2 Wochen)
-
-| # | Verbesserung | Aufwand | Impact |
-|---|---|---|---|
-| 11 | **Error Boundaries** | 1-2h | Stability Medium |
-| 12 | **Dynamic Import** (BarcodeScanner) | 30min | Performance Low |
-| 13 | **Loading States** (Scraping) | 1h | UX Medium |
-| 14 | **Accessibility Audit** | 3-4h | Quality Medium |
-| 15 | **Mobile UX Polish** | 2-3h | UX Medium |
-
-**UX-Gaps:**
-- ❌ Keine Toast Notifications (nur `alert()` in 8 Stellen)
-- ❌ Scraping hat kein Loading-Feedback (5+ Sekunden Stillstand)
-- ⚠️ Barcode Scanner: 250x250px zu klein auf Mobile
-- ⚠️ Floating Button (Recipe Detail) könnte Text überlagern
-
----
-
-### 🟢 NIEDRIG (v2.0 Roadmap)
-
-| # | Feature | Aufwand | Status |
-|---|---|---|---|
-| 16 | PWA Offline-Modus | 4-6h | Geplant |
-| 17 | Multi-User Support | 8-10h | Geplant |
-| 18 | Prisma Query Caching | 2-3h | Optional |
-| 19 | Unit Tests (Jest) | 4-6h | Fehlt komplett |
-
----
-
-### 📊 Metriken
-
-```
-TypeScript Coverage:   95% (7 any-Types)
-Error Handling:        42% (16/38 Files)
-Testing:               0% (Keine Tests) 🔴
-Security Grade:        60/100
-Performance Grade:     65/100
-Accessibility:         60/100
-```
-
-### 🚀 Quick Wins (< 1 Stunde, hoher Impact)
-
-1. **Toast System** (30min):
-   ```bash
-   npm install sonner
-   # In layout.tsx: <Toaster />
-   # Replace all alert() → toast.error()
-   ```
-
-2. **URL Validation** (20min):
-   - `validateRecipeUrl()` in `scrape.ts:9` einbauen
-
-3. **Dynamic BarcodeScanner** (15min):
-   ```typescript
-   const BarcodeScanner = dynamic(() => import('@/components/BarcodeScanner'))
-   ```
-
-4. **Image Optimization** (30min):
-   - Alle `<img>` → Next.js `<Image>` (6 Stellen)
-
-**Gesamtaufwand Quick Wins:** ~2 Stunden → Sofortige Verbesserung in Security & UX
-
----
-
-### 📝 Implementierungs-Roadmap (4 Wochen)
-
-**Woche 1 - Security & Stability:**
-- URL Validation + Input Sanitization
-- Toast System implementieren
-- Error Handling vereinheitlichen
-- Rate Limiting
-
-**Woche 2 - Code Quality:**
-- TypeScript Types säubern (7 any → Interfaces)
-- Code Deduplication (QuickSelectButtons)
-- Error Boundaries
-- Unit Tests Setup
-
-**Woche 3 - Performance:**
-- Database Query Optimization (Match-Algorithmus)
-- Next.js Image Optimization
-- Dynamic Imports
-- Caching-Strategien
-
-**Woche 4 - UX & Features:**
-- Ablaufdatum UI implementieren
-- Loading/Error States verbessern
-- Mobile UX Polish
-- Accessibility Audit & Fixes
-
-**📚 Siehe:** [OPTIMIZATION.md](OPTIMIZATION.md) für detaillierte Analyse, Code-Beispiele & 4-Wochen-Roadmap
-
----
-
 ## Changelog (Kurz)
 
+### v2.0 (2026-03-25)
+- ✅ Benutzeraccounts & Login (bcryptjs + Cookie-Sessions)
+- ✅ Multi-Tenant Datentrennung (userId auf Inventory/Recipe)
+- ✅ Admin-Rolle mit Nutzerverwaltung
+- ✅ Backup/Restore nur für Admins
+- ✅ Scraping Fix: Robuste Instruction-Extraktion (HowToSection, HowToStep)
+- ✅ "Jetzt Kochen" Button auf Rezept-Detailseite funktional
+- ✅ URL-Validation & SSRF-Schutz im Scraper
+- ✅ Responsives Mobile-Design (Padding, Font-Sizes, ThemeToggle)
+- ✅ Dark-Mode Badge-Farben auf Dashboard
+- ✅ Next.js 16 Proxy (statt deprecated Middleware)
+- ✅ TypeScript: `any` Types reduziert
+
 ### v1.4.1 (2026-03-24)
-- 🐛 Fix: Rezept-Detail-Seite nach URL-Import (#6)
-  - Next.js 16 Params Promise Compatibility
-  - Rezepte sind nun nach Import direkt aufrufbar
+- Fix: Rezept-Detail-Seite nach URL-Import (#6)
 
 ### v1.4 (2026-03-24)
-- ✅ Backup & Restore (JSON Export/Import)
-- ✅ Einheiten-Editor (10 Einheiten)
-- ✅ Alert & RadioGroup UI-Komponenten
-- ✅ Dokumentation ausgelagert (FEATURES.md, DEPLOYMENT.md, etc.)
+- Backup & Restore, Einheiten-Editor, Docs-Refactoring
 
 ### v1.3 (2026-03-24)
-- ✅ Vorrat Bearbeiten/Löschen
-- ✅ Dark Mode (next-themes)
-- ✅ Rebranding: KIIdea → Foodlabs
-
-### v1.2 (2026-03-23)
-- ✅ AddQuantityDialog mit Smart Package Detection
-- ✅ Schnellauswahl-Buttons
-
-### v1.1 (2026-03-22)
-- ✅ GitHub Container Registry Migration
-
-### v1.0 (2026-03-21)
-- ✅ Production Release
-- ✅ Prisma Singleton Pattern
-- ✅ Docker Volume-Strategie
+- Vorrat Bearbeiten/Löschen, Dark Mode, Rebranding
 
 **Vollständiger Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
@@ -505,8 +400,8 @@ Accessibility:         60/100
 
 ---
 
-**Letzte Aktualisierung:** 24. März 2026
-**Version:** 1.4.1 (Next.js 16 Params Fix)
+**Letzte Aktualisierung:** 25. März 2026
+**Version:** 2.0 (Benutzeraccounts, Responsive, Scraping-Fix)
 **Maintainer:** Kroonk
 
 **📚 Für Details siehe:** [FEATURES.md](FEATURES.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

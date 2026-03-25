@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAdmin } from './auth'
 
 export interface BackupData {
   version: string
@@ -18,6 +19,7 @@ export interface BackupData {
     quantity: number
     expiresAt: string | null
     itemId: string
+    userId: string | null
   }[]
   recipes: {
     id: string
@@ -26,6 +28,7 @@ export interface BackupData {
     imageUrl: string | null
     sourceUrl: string | null
     instructions: string | null
+    userId: string | null
     ingredients: {
       id: string
       quantity: number
@@ -36,9 +39,10 @@ export interface BackupData {
 }
 
 /**
- * Exportiert alle Daten als JSON
+ * Exportiert alle Daten als JSON (Admin only)
  */
 export async function exportData(): Promise<BackupData> {
+  await requireAdmin()
   try {
     const items = await prisma.item.findMany({
       orderBy: { name: 'asc' }
@@ -56,7 +60,7 @@ export async function exportData(): Promise<BackupData> {
     })
 
     return {
-      version: '1.4',
+      version: '2.0',
       exportDate: new Date().toISOString(),
       items: items.map(item => ({
         id: item.id,
@@ -69,7 +73,8 @@ export async function exportData(): Promise<BackupData> {
         id: inv.id,
         quantity: inv.quantity,
         expiresAt: inv.expiresAt?.toISOString() || null,
-        itemId: inv.itemId
+        itemId: inv.itemId,
+        userId: inv.userId
       })),
       recipes: recipes.map(recipe => ({
         id: recipe.id,
@@ -78,6 +83,7 @@ export async function exportData(): Promise<BackupData> {
         imageUrl: recipe.imageUrl,
         sourceUrl: recipe.sourceUrl,
         instructions: recipe.instructions,
+        userId: recipe.userId,
         ingredients: recipe.ingredients.map(ing => ({
           id: ing.id,
           quantity: ing.quantity,
@@ -93,18 +99,15 @@ export async function exportData(): Promise<BackupData> {
 }
 
 /**
- * Importiert Daten aus JSON
- * @param data BackupData
- * @param mode 'merge' = Bestehende behalten + Neue hinzufügen, 'replace' = Alles löschen + Neu importieren
+ * Importiert Daten aus JSON (Admin only)
  */
 export async function importData(data: BackupData, mode: 'merge' | 'replace' = 'merge') {
+  await requireAdmin()
   try {
-    // Validiere Daten
     if (!data.version || !data.items || !Array.isArray(data.items)) {
       throw new Error('Ungültiges Backup-Format')
     }
 
-    // Replace Mode: Alle Daten löschen
     if (mode === 'replace') {
       await prisma.recipeIngredient.deleteMany()
       await prisma.recipe.deleteMany()
@@ -112,7 +115,6 @@ export async function importData(data: BackupData, mode: 'merge' | 'replace' = '
       await prisma.item.deleteMany()
     }
 
-    // Items importieren (mit Upsert für Merge-Mode)
     for (const item of data.items) {
       await prisma.item.upsert({
         where: { id: item.id },
@@ -132,7 +134,6 @@ export async function importData(data: BackupData, mode: 'merge' | 'replace' = '
       })
     }
 
-    // Inventory importieren
     if (data.inventory && Array.isArray(data.inventory)) {
       for (const inv of data.inventory) {
         await prisma.inventory.upsert({
@@ -141,7 +142,8 @@ export async function importData(data: BackupData, mode: 'merge' | 'replace' = '
             id: inv.id,
             quantity: inv.quantity,
             expiresAt: inv.expiresAt ? new Date(inv.expiresAt) : null,
-            itemId: inv.itemId
+            itemId: inv.itemId,
+            userId: inv.userId
           },
           update: {
             quantity: inv.quantity,
@@ -151,7 +153,6 @@ export async function importData(data: BackupData, mode: 'merge' | 'replace' = '
       }
     }
 
-    // Recipes importieren
     if (data.recipes && Array.isArray(data.recipes)) {
       for (const recipe of data.recipes) {
         await prisma.recipe.upsert({
@@ -162,7 +163,8 @@ export async function importData(data: BackupData, mode: 'merge' | 'replace' = '
             description: recipe.description,
             imageUrl: recipe.imageUrl,
             sourceUrl: recipe.sourceUrl,
-            instructions: recipe.instructions
+            instructions: recipe.instructions,
+            userId: recipe.userId
           },
           update: {
             title: recipe.title,
@@ -173,7 +175,6 @@ export async function importData(data: BackupData, mode: 'merge' | 'replace' = '
           }
         })
 
-        // Recipe Ingredients importieren
         if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
           for (const ing of recipe.ingredients) {
             await prisma.recipeIngredient.upsert({
@@ -195,7 +196,6 @@ export async function importData(data: BackupData, mode: 'merge' | 'replace' = '
       }
     }
 
-    // Cache invalidieren
     revalidatePath('/')
     revalidatePath('/inventory')
     revalidatePath('/recipes')

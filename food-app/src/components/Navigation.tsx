@@ -2,9 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Refrigerator, BookOpen, PlusCircle } from "lucide-react"
+import { Home, Refrigerator, BookOpen, PlusCircle, Shield, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "./ThemeToggle"
+import { logout } from "@/app/actions/auth"
+import { Button } from "./ui/button"
 
 const navItems = [
   { href: "/", label: "Start", icon: Home },
@@ -13,8 +15,11 @@ const navItems = [
   { href: "/recipes", label: "Rezepte", icon: BookOpen },
 ]
 
-export default function Navigation() {
+export default function Navigation({ username, isAdmin }: { username?: string; isAdmin?: boolean }) {
   const pathname = usePathname()
+
+  // Don't show nav on login/register pages
+  if (pathname === "/login" || pathname === "/register") return null
 
   return (
     <>
@@ -42,8 +47,30 @@ export default function Navigation() {
                 </Link>
               )
             })}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                  pathname === "/admin" ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                <Shield className="w-4 h-4" />
+                Admin
+              </Link>
+            )}
           </nav>
-          <ThemeToggle />
+          <div className="flex items-center gap-1 ml-4 pl-4 border-l">
+            {username && (
+              <span className="text-sm text-muted-foreground mr-2">{username}</span>
+            )}
+            <ThemeToggle />
+            <form action={logout}>
+              <Button variant="ghost" size="icon" type="submit" title="Abmelden">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
 
@@ -67,6 +94,9 @@ export default function Navigation() {
               </Link>
             )
           })}
+          <div className="flex flex-col items-center justify-center h-full gap-1">
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
     </>
