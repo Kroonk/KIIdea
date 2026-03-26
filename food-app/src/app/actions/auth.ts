@@ -120,23 +120,28 @@ export async function logout() {
 }
 
 export async function getCurrentUser() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get("session")?.value
-  if (!token) return null
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get("session")?.value
+    if (!token) return null
 
-  const session = await prisma.session.findUnique({
-    where: { token },
-    include: { user: { select: { id: true, username: true, role: true } } }
-  })
+    const session = await prisma.session.findUnique({
+      where: { token },
+      include: { user: { select: { id: true, username: true, role: true } } }
+    })
 
-  if (!session || session.expiresAt < new Date()) {
-    if (session) {
-      await prisma.session.delete({ where: { id: session.id } })
+    if (!session || session.expiresAt < new Date()) {
+      if (session) {
+        await prisma.session.delete({ where: { id: session.id } })
+      }
+      return null
     }
+
+    return session.user
+  } catch (e) {
+    console.error("[auth] getCurrentUser failed:", e)
     return null
   }
-
-  return session.user
 }
 
 export async function requireAuth() {
